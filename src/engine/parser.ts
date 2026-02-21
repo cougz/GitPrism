@@ -2,14 +2,24 @@ import { ParseError, type DetailLevel, type ParsedRequest } from "../types";
 
 const VALID_DETAIL_LEVELS = new Set<string>(["summary", "structure", "file-list", "full"]);
 
-function parseDetail(raw: string | null): DetailLevel {
-  if (!raw) return "full";
-  if (!VALID_DETAIL_LEVELS.has(raw)) {
-    throw new ParseError(
-      `Invalid detail level "${raw}". Must be one of: summary, structure, file-list, full.`
-    );
+function parseDetail(raw: string | null, searchParams?: URLSearchParams): DetailLevel {
+  // Explicit ?detail=<level> takes priority
+  if (raw) {
+    if (!VALID_DETAIL_LEVELS.has(raw)) {
+      throw new ParseError(
+        `Invalid detail level "${raw}". Must be one of: summary, structure, file-list, full.`
+      );
+    }
+    return raw as DetailLevel;
   }
-  return raw as DetailLevel;
+  // Abbreviated bare-key shorthand: ?summary, ?structure, ?file-list, ?full
+  // e.g. /https://github.com/owner/repo?summary
+  if (searchParams) {
+    for (const level of ["summary", "structure", "file-list", "full"] as const) {
+      if (searchParams.has(level)) return level;
+    }
+  }
+  return "full";
 }
 
 function parseOwnerRepo(raw: string): { owner: string; repo: string } {
@@ -43,7 +53,7 @@ export function parseRequest(request: Request): ParsedRequest {
   // pasting URLs into address bars or constructing fetch() calls.
   const pathname = decodeURIComponent(url.pathname);
   const noCache = url.searchParams.get("no-cache") === "true";
-  const detail = parseDetail(url.searchParams.get("detail"));
+  const detail = parseDetail(url.searchParams.get("detail"), url.searchParams);
 
   // ── Canonical form: /ingest ──────────────────────────────────────────────
   if (pathname === "/ingest") {

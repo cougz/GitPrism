@@ -10,8 +10,15 @@ GET https://gitprism.cloudemo.org/ingest?repo={owner/repo}&ref={branch}&path={su
 - path (optional): Subdirectory to scope results to, e.g. "src/components"
 - detail (optional): One of: summary, structure, file-list, full. Defaults to full.
 
-## Shorthand
+## Detail Level Shorthand
+All three access modes support bare-key detail shortcuts instead of ?detail=<level>:
+GET /ingest?repo=owner/repo&summary
+GET /https://github.com/owner/repo?summary
+Supported keys: ?summary, ?structure, ?file-list, ?full
+
+## URL Proxy Shorthand
 GET https://gitprism.cloudemo.org/https://github.com/{owner}/{repo}/tree/{ref}/{path}
+Append ?summary, ?structure, ?file-list, or ?full to control output detail.
 
 ## MCP Server
 Connect to: https://gitprism.cloudemo.org/mcp

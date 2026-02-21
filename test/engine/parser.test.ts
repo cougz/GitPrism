@@ -155,3 +155,61 @@ describe("parseRequest – URL-encoded shorthand (percent-encoded colon)", () =>
     expect(result.path).toBeUndefined();
   });
 });
+
+describe("parseRequest – abbreviated detail shorthand (?summary, ?structure, etc.)", () => {
+  it("parses ?summary bare key on URL-proxy form", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/owner/repo?summary")
+    );
+    expect(result.detail).toBe("summary");
+    expect(result.owner).toBe("owner");
+    expect(result.repo).toBe("repo");
+  });
+
+  it("parses ?structure bare key on URL-proxy form", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/owner/repo?structure")
+    );
+    expect(result.detail).toBe("structure");
+  });
+
+  it("parses ?file-list bare key on URL-proxy form", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/owner/repo?file-list")
+    );
+    expect(result.detail).toBe("file-list");
+  });
+
+  it("parses ?full bare key on URL-proxy form", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/owner/repo?full")
+    );
+    expect(result.detail).toBe("full");
+  });
+
+  it("?detail= takes priority over bare key when both present", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/owner/repo?summary&detail=structure")
+    );
+    expect(result.detail).toBe("structure");
+  });
+
+  it("parses ?summary on /ingest form", () => {
+    const result = parseRequest(makeRequest("/ingest?repo=owner/repo&summary"));
+    expect(result.detail).toBe("summary");
+  });
+
+  it("defaults to full when no detail param and no bare key", () => {
+    const result = parseRequest(makeRequest("/https://github.com/owner/repo"));
+    expect(result.detail).toBe("full");
+  });
+
+  it("works with tree/ref/path and ?summary", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/cougz/GitPrism/tree/main/src?summary")
+    );
+    expect(result.detail).toBe("summary");
+    expect(result.ref).toBe("main");
+    expect(result.path).toBe("src");
+  });
+});

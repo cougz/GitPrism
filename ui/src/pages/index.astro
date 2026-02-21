@@ -360,15 +360,15 @@ import Layout from '../layouts/Layout.astro';
     <div class="mode-hints" id="mode-hints">
       <div class="mode-hint">
         <strong>REST API</strong>
-        <code>/ingest?repo=owner/repo</code>
+        <code>/ingest?repo=owner/repo&amp;summary</code>
       </div>
       <div class="mode-hint">
         <strong>URL Proxy</strong>
-        <code>/https://github.com/owner/repo</code>
+        <code>/https://github.com/owner/repo?file-list</code>
       </div>
       <div class="mode-hint">
         <strong>MCP Tool</strong>
-        Connect to <code>/mcp</code> · tool: <code>ingest_repo</code>
+        <code>/mcp</code> · <code>ingest_repo(url, detail)</code>
       </div>
     </div>
 

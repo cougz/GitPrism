@@ -49,7 +49,13 @@ GET /ingest?repo=owner/repo&ref=main&path=src&detail=full
 GET /https://github.com/owner/repo/tree/main/src
 ```
 
-**Parameters:**
+Branch, ref, and subdirectory are automatically extracted from the GitHub URL. Append a detail shorthand to control output:
+```
+GET /https://github.com/owner/repo?summary
+GET /https://github.com/owner/repo/tree/main/src?file-list
+```
+
+**Parameters (canonical form):**
 
 | Parameter | Required | Default | Description |
 |---|---|---|---|
@@ -59,14 +65,20 @@ GET /https://github.com/owner/repo/tree/main/src
 | `detail` | No | `full` | Output level: `summary`, `structure`, `file-list`, or `full` |
 | `no-cache` | No | `false` | Set to `true` to bypass response cache |
 
+**Detail level shorthand** — instead of `?detail=<level>`, append the level as a bare key. Works on both the canonical and URL-proxy forms:
+```
+/ingest?repo=owner/repo&summary
+/https://github.com/owner/repo?structure
+```
+
 **Detail levels:**
 
-| Level | Returns |
-|---|---|
-| `summary` | YAML front-matter with repo name, ref, file count, total size |
-| `structure` | Summary + ASCII directory tree |
-| `file-list` | Structure + table of every included file with byte size and line count |
-| `full` | Summary + structure + complete file contents in fenced code blocks. Streamed. |
+| Level | Shorthand | Returns |
+|---|---|---|
+| `summary` | `?summary` | YAML front-matter with repo name, ref, file count, total size |
+| `structure` | `?structure` | Summary + ASCII directory tree |
+| `file-list` | `?file-list` | Structure + table of every included file with byte size and line count |
+| `full` | `?full` | Summary + structure + complete file contents in fenced code blocks. Streamed. |
 
 **Response headers:**
 
@@ -98,10 +110,15 @@ Connect any MCP-compatible client to `https://gitprism.cloudemo.org/mcp`.
 
 Available tool: **`ingest_repo`**
 
+| Argument | Required | Default | Description |
+|---|---|---|---|
+| `url` | Yes | — | GitHub URL or `owner/repo` shorthand |
+| `detail` | No | `full` | `summary`, `structure`, `file-list`, or `full` |
+
 ```json
 {
   "url": "https://github.com/owner/repo",
-  "detail": "full"
+  "detail": "summary"
 }
 ```
 
