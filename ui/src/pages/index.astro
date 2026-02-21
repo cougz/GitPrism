@@ -278,6 +278,18 @@ import Layout from '../layouts/Layout.astro';
     }
 
     /* ── Mode hints ── */
+    .mode-hints-container {
+      margin-bottom: 24px;
+    }
+    .mode-hints-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 12px;
+    }
     .mode-hints {
       display: flex;
       gap: 12px;
@@ -295,6 +307,16 @@ import Layout from '../layouts/Layout.astro';
       line-height: 1.5;
     }
     .mode-hint strong { color: var(--cf-orange); display: block; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* ── Interactive label ── */
+    .interactive-label {
+      text-align: center;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 32px 0 16px;
+      padding: 0 20px;
+    }
 
     /* ── Powered by ── */
     .powered-by {
@@ -317,6 +339,7 @@ import Layout from '../layouts/Layout.astro';
     @media (max-width: 600px) {
       .hero { padding: 56px 0 32px; }
       .hero-title { font-size: 2rem; }
+      .interactive-label { font-size: 1rem; margin: 24px 0 12px; }
       .search-bar { border-radius: 10px; padding: 4px 4px 4px 14px; }
       .search-btn { padding: 9px 14px; font-size: 13px; }
       .mode-hints { gap: 8px; }
@@ -332,7 +355,7 @@ import Layout from '../layouts/Layout.astro';
         Convert any public GitHub repository into LLM-ready Markdown — instantly, via web, REST API, or MCP tool.
         <br>
         <span class="powered-by">
-          Powered by 
+          Powered by
           <svg viewBox="0 0 50 50" width="18" height="18" fill="currentColor" aria-hidden="true" class="cf-workers-icon">
             <path d="m18.63 37.418-9.645-12.9 9.592-12.533-1.852-2.527L5.917 23.595l-.015 1.808 10.86 14.542z"></path>
             <path d="M21.997 6.503h-3.712l13.387 18.3-13.072 17.7h3.735L35.4 24.81z"></path>
@@ -342,6 +365,28 @@ import Layout from '../layouts/Layout.astro';
         </span>
       </p>
     </section>
+
+    <!-- Interactive label -->
+    <div class="interactive-label">OR USE INTERACTIVELY HERE</div>
+
+    <!-- Mode hints -->
+    <div class="mode-hints-container">
+      <div class="mode-hints-label">Other Usage Options</div>
+      <div class="mode-hints" id="mode-hints">
+        <div class="mode-hint">
+          <strong>REST API</strong>
+          <code>/ingest?repo=owner/repo&amp;summary</code>
+        </div>
+        <div class="mode-hint">
+          <strong>URL Proxy</strong>
+          <code>/https://github.com/owner/repo?file-list</code>
+        </div>
+        <div class="mode-hint">
+          <strong>MCP Tool</strong>
+          <code>/mcp</code> · <code>ingest_repo(url, detail)</code>
+        </div>
+      </div>
+    </div>
 
     <!-- Search bar -->
     <section class="search-section">
@@ -382,22 +427,6 @@ import Layout from '../layouts/Layout.astro';
 
     <!-- Error banner -->
     <div class="error-banner" id="error-banner"></div>
-
-    <!-- Mode hints -->
-    <div class="mode-hints" id="mode-hints">
-      <div class="mode-hint">
-        <strong>REST API</strong>
-        <code>/ingest?repo=owner/repo&amp;summary</code>
-      </div>
-      <div class="mode-hint">
-        <strong>URL Proxy</strong>
-        <code>/https://github.com/owner/repo?file-list</code>
-      </div>
-      <div class="mode-hint">
-        <strong>MCP Tool</strong>
-        <code>/mcp</code> · <code>ingest_repo(url, detail)</code>
-      </div>
-    </div>
 
     <!-- Result -->
     <section class="result-section" id="result-section">
