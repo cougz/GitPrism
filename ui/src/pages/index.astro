@@ -279,9 +279,18 @@ import Layout from '../layouts/Layout.astro';
       vertical-align: middle;
     }
 
+    /* ── Horizontal divider ── */
+    .divider {
+      width: 100%;
+      max-width: 720px;
+      margin: 32px auto;
+      height: 1px;
+      background: var(--border-color);
+      border: none;
+    }
+
     /* ── Mode hints ── */
     .mode-hints-container {
-      margin-top: 48px;
       margin-bottom: 24px;
     }
     .mode-hints-label {
@@ -409,6 +418,9 @@ import Layout from '../layouts/Layout.astro';
 
     <!-- Error banner -->
     <div class="error-banner" id="error-banner"></div>
+
+    <!-- Horizontal divider -->
+    <hr class="divider" />
 
     <!-- Mode hints -->
     <div class="mode-hints-container">
