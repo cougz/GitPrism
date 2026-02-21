@@ -5,6 +5,8 @@ export default defineWorkersConfig({
     include: ["test/**/*.test.ts"],
     poolOptions: {
       workers: {
+        singleWorker: true,
+        isolatedStorage: false,
         wrangler: { configPath: "./wrangler.jsonc" },
         miniflare: {
           // Provide stub bindings so pure unit tests don't fail from missing bindings
