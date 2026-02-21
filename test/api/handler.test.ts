@@ -58,7 +58,7 @@ describe("handleIngest – happy path", () => {
       )
       .mockResolvedValueOnce(
         // zipball fetch
-        new Response(zipData.buffer, {
+        new Response(zipData.buffer as ArrayBuffer, {
           status: 200,
           headers: {
             "X-RateLimit-Remaining": "4999",
@@ -108,7 +108,7 @@ describe("handleIngest – resolves default ref", () => {
         new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
       )
       .mockResolvedValueOnce(
-        new Response(zipData.buffer, { status: 200 })
+        new Response(zipData.buffer as ArrayBuffer, { status: 200 })
       );
 
     const req = new Request("https://gitprism.dev/ingest?repo=owner/repo");
@@ -193,7 +193,7 @@ describe("handleIngest – no-cache param", () => {
         new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
       )
       .mockResolvedValueOnce(
-        new Response(zipData.buffer, { status: 200 })
+        new Response(zipData.buffer as ArrayBuffer, { status: 200 })
       );
 
     const req = new Request(
