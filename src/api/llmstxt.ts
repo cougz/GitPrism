@@ -2,7 +2,7 @@ const LLMS_TXT = `# GitPrism
 > Convert public GitHub repositories into LLM-ready Markdown.
 
 ## API
-GET https://gitprism.dev/ingest?repo={owner/repo}&ref={branch}&path={subdir}&detail={level}
+GET https://gitprism.cloudemo.org/ingest?repo={owner/repo}&ref={branch}&path={subdir}&detail={level}
 
 ## Parameters
 - repo (required): GitHub owner/repo, e.g. "cloudflare/workers-sdk"
@@ -11,10 +11,10 @@ GET https://gitprism.dev/ingest?repo={owner/repo}&ref={branch}&path={subdir}&det
 - detail (optional): One of: summary, structure, file-list, full. Defaults to full.
 
 ## Shorthand
-GET https://gitprism.dev/https://github.com/{owner}/{repo}/tree/{ref}/{path}
+GET https://gitprism.cloudemo.org/https://github.com/{owner}/{repo}/tree/{ref}/{path}
 
 ## MCP Server
-Connect to: https://gitprism.dev/mcp
+Connect to: https://gitprism.cloudemo.org/mcp
 Tool: ingest_repo(url, detail)
 
 ## Limits

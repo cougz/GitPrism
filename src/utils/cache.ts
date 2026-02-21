@@ -1,6 +1,6 @@
 import type { ParsedRequest } from "../types";
 
-const CACHE_BASE_URL = "https://gitprism.dev/cache/";
+const CACHE_BASE_URL = "https://gitprism.cloudemo.org/cache/";
 
 /**
  * Builds a normalized cache key request from parsed request params.

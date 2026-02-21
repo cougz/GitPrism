@@ -35,7 +35,7 @@ A fast, token-efficient, stateless pipeline that converts public GitHub reposito
 
 ### Web UI
 
-Visit `https://gitprism.dev/` and paste any GitHub URL.
+Visit `https://gitprism.cloudemo.org/` and paste any GitHub URL.
 
 ### REST API
 
@@ -94,7 +94,7 @@ GET /https://github.com/owner/repo/tree/main/src
 
 ### MCP Tool
 
-Connect any MCP-compatible client to `https://gitprism.dev/mcp`.
+Connect any MCP-compatible client to `https://gitprism.cloudemo.org/mcp`.
 
 Available tool: **`ingest_repo`**
 

@@ -21,12 +21,12 @@ export async function ingestFromUrl(
   // Normalize: if given `owner/repo` shorthand, prefix with the URL-appended form
   let urlToParse: string;
   if (githubUrl.startsWith("https://github.com/")) {
-    urlToParse = `https://gitprism.dev/${githubUrl}`;
+    urlToParse = `https://gitprism.cloudemo.org/${githubUrl}`;
   } else if (!githubUrl.startsWith("http")) {
     // Assume owner/repo shorthand
-    urlToParse = `https://gitprism.dev/ingest?repo=${encodeURIComponent(githubUrl)}&detail=${detail}`;
+    urlToParse = `https://gitprism.cloudemo.org/ingest?repo=${encodeURIComponent(githubUrl)}&detail=${detail}`;
   } else {
-    urlToParse = `https://gitprism.dev/${githubUrl}`;
+    urlToParse = `https://gitprism.cloudemo.org/${githubUrl}`;
   }
 
   const parsed = parseRequest(new Request(urlToParse));
