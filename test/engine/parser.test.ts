@@ -112,3 +112,46 @@ describe("parseRequest – URL-appended shorthand form", () => {
     expect(() => parseRequest(makeRequest("/https://github.com/owner"))).toThrow(ParseError);
   });
 });
+
+describe("parseRequest – URL-encoded shorthand (percent-encoded colon)", () => {
+  it("parses %3A-encoded colon in https scheme (single slash after)", () => {
+    // Browsers sometimes encode the colon: https%3A//github.com/...
+    // The Request constructor preserves the encoding in the pathname.
+    const req = new Request("https://gitprism.dev/https%3A//github.com/owner/repo");
+    const result = parseRequest(req);
+    expect(result.owner).toBe("owner");
+    expect(result.repo).toBe("repo");
+    expect(result.detail).toBe("full");
+  });
+
+  it("parses %3A-encoded colon with tree/branch/subpath", () => {
+    const req = new Request(
+      "https://gitprism.dev/https%3A//github.com/cougz/arcane-mcp-server/tree/main/src/tools"
+    );
+    const result = parseRequest(req);
+    expect(result.owner).toBe("cougz");
+    expect(result.repo).toBe("arcane-mcp-server");
+    expect(result.ref).toBe("main");
+    expect(result.path).toBe("src/tools");
+  });
+
+  it("auto-extracts subpath from /tree/branch/path URL", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/cougz/arcane-mcp-server/tree/main/src/tools")
+    );
+    expect(result.owner).toBe("cougz");
+    expect(result.repo).toBe("arcane-mcp-server");
+    expect(result.ref).toBe("main");
+    expect(result.path).toBe("src/tools");
+  });
+
+  it("returns no path for bare repo URL (no /tree/...)", () => {
+    const result = parseRequest(
+      makeRequest("/https://github.com/cougz/arcane-mcp-server")
+    );
+    expect(result.owner).toBe("cougz");
+    expect(result.repo).toBe("arcane-mcp-server");
+    expect(result.ref).toBeUndefined();
+    expect(result.path).toBeUndefined();
+  });
+});

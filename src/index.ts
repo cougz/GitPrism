@@ -8,19 +8,22 @@ const mcpHandler = createMcpFetchHandler();
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    // Decode once — browsers may percent-encode characters like the colon in https%3A
+    const pathname = decodeURIComponent(url.pathname);
 
     // MCP server (stateless, no Durable Objects required)
-    if (url.pathname.startsWith("/mcp")) {
+    if (pathname.startsWith("/mcp")) {
       return mcpHandler(request, env, ctx);
     }
 
     // REST API — canonical form and URL-appended shorthand
-    if (url.pathname === "/ingest" || url.pathname.startsWith("/https://")) {
+    // Also handle https%3A encoded forms (e.g. from copy-paste in some clients)
+    if (pathname === "/ingest" || pathname.startsWith("/https://")) {
       return handleIngest(request, env, ctx);
     }
 
     // AI discoverability
-    if (url.pathname === "/llms.txt") {
+    if (pathname === "/llms.txt") {
       return handleLlmsTxt();
     }
 

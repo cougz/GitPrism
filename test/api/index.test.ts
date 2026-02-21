@@ -73,4 +73,21 @@ describe("Worker routing", () => {
     await worker.fetch(req, env, makeCtx());
     expect((env.ASSETS.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(1);
   });
+
+  it("routes percent-encoded GitHub URL (/https%3A//...) to API handler", async () => {
+    // Browsers may encode the colon in the URL when pasting into address bars
+    const req = new Request("https://gitprism.dev/https%3A//github.com/owner/repo");
+    const res = await worker.fetch(req, makeEnv(), makeCtx());
+    // Should reach the API handler — any error response is fine, but not ASSETS fallthrough
+    // (ASSETS fallthrough would give us 200 with HTML, not a JSON error)
+    expect(res.headers.get("Content-Type")).not.toContain("text/html");
+  });
+
+  it("does not route /llms.txt to ASSETS", async () => {
+    const env = makeEnv();
+    const req = new Request("https://gitprism.dev/llms.txt");
+    await worker.fetch(req, env, makeCtx());
+    // ASSETS should not be called
+    expect((env.ASSETS.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
+  });
 });

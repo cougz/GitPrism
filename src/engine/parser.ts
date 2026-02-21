@@ -38,11 +38,15 @@ function parseOwnerRepo(raw: string): { owner: string; repo: string } {
  */
 export function parseRequest(request: Request): ParsedRequest {
   const url = new URL(request.url);
+  // Decode the pathname so that percent-encoded characters (e.g. %3A for :) are
+  // normalised before route matching. Browsers may encode special characters when
+  // pasting URLs into address bars or constructing fetch() calls.
+  const pathname = decodeURIComponent(url.pathname);
   const noCache = url.searchParams.get("no-cache") === "true";
   const detail = parseDetail(url.searchParams.get("detail"));
 
   // ── Canonical form: /ingest ──────────────────────────────────────────────
-  if (url.pathname === "/ingest") {
+  if (pathname === "/ingest") {
     const repoParam = url.searchParams.get("repo");
     if (!repoParam || !repoParam.trim()) {
       throw new ParseError(
@@ -56,9 +60,9 @@ export function parseRequest(request: Request): ParsedRequest {
   }
 
   // ── URL-appended shorthand: /https://github.com/... ──────────────────────
-  if (url.pathname.startsWith("/https://github.com/")) {
+  if (pathname.startsWith("/https://github.com/")) {
     // Strip the leading "/" to recover the full GitHub URL
-    const githubUrl = url.pathname.slice(1);
+    const githubUrl = pathname.slice(1);
     // Parse as URL to extract the path segments
     let ghPath: string;
     try {
@@ -92,6 +96,6 @@ export function parseRequest(request: Request): ParsedRequest {
   }
 
   throw new ParseError(
-    "Request did not match any supported route. Use /ingest?repo=owner/repo or /https://github.com/owner/repo"
+    `Request did not match any supported route. Use /ingest?repo=owner/repo or /https://github.com/owner/repo (got: ${pathname})`
   );
 }
