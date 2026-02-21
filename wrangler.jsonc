@@ -9,9 +9,9 @@
     "binding": "ASSETS",
     "not_found_handling": "single-page-application"
   },
-  "routes": [
-    { "pattern": "gitprism.dev/*", "custom_domain": true }
-  ],
+  // "routes": [
+  //   { "pattern": "yourdomain.com/*", "custom_domain": true }
+  // ],
   "ratelimits": [
     {
       "name": "RATE_LIMITER",

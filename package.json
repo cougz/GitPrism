@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "build": "cd ui && npm install && npm run build",
     "deploy": "wrangler deploy",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -109,54 +109,77 @@ The tool is fully compatible with Code Mode agents — the strongly-typed Zod in
 
 ## Deployment
 
-### Prerequisites
+### Option A — Workers Builds (recommended)
 
-- Cloudflare account (Workers paid plan recommended for 5-minute CPU limit)
-- Custom domain configured in Cloudflare (required for Cache API)
+Workers Builds connects your GitHub repo to Cloudflare and deploys automatically on every push to `main`. The Astro UI is compiled during the build step; `ui/dist/` is intentionally not committed to git.
 
-### Steps
+**Steps:**
 
-1. **Clone and install:**
-   ```sh
-   git clone https://github.com/cougz/gitprism.git
-   cd gitprism
-   npm install
-   cd ui && npm install && npm run build && cd ..
+1. Go to the [Cloudflare dashboard](https://dash.cloudflare.com/) → **Workers & Pages** → **Create** → **Import a Git repository**
+2. Connect your GitHub account and select this repo
+3. Configure **Build settings**:
+
+   | Setting | Value |
+   |---|---|
+   | Branch | `main` |
+   | Build command | `npm install && npm run build` |
+   | Deploy command | `npx wrangler deploy` (default) |
+
+4. Click **Save and Deploy** — the first build will run immediately
+
+5. Once deployed, go to your Worker → **Settings** → **Variables and Secrets** → **Add** a secret:
+
+   | Name | Value |
+   |---|---|
+   | `GITHUB_TOKEN` | Fine-grained PAT with **public repo read-only** scope |
+
+   Without this secret the Worker still functions, but GitHub API rate limits drop from 5,000 to 60 requests/hour (shared across all requests from the Worker's outbound IP).
+
+6. **Optional — Custom domain:** Worker → **Settings** → **Custom Domains** → add your domain. This enables the Workers Cache API. Without a custom domain the Worker deploys to `<name>.<subdomain>.workers.dev` and caching silently no-ops (the code handles this gracefully). To enable routing once you have a domain, uncomment and update the `routes` block in `wrangler.jsonc`:
+   ```jsonc
+   "routes": [
+     { "pattern": "yourdomain.com/*", "custom_domain": true }
+   ],
    ```
 
-2. **Configure secrets:**
-   ```sh
-   npx wrangler secret put GITHUB_TOKEN
-   # Enter your fine-grained PAT with public repo read-only scope
-   ```
+### Option B — Manual deploy (Wrangler CLI)
 
-3. **Deploy:**
-   ```sh
-   npx wrangler deploy
-   ```
-
-4. **Configure custom domain** in the Cloudflare dashboard under Workers & Pages → your worker → Custom Domains. This enables the Cache API.
+```sh
+git clone https://github.com/cougz/gitprism.git
+cd gitprism
+npm install
+npm run build          # builds ui/dist/
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler deploy
+```
 
 ### Environment Variables
 
-Configured in `wrangler.jsonc` under `vars`:
+Configured in `wrangler.jsonc` under `vars`. Override in the Cloudflare dashboard under Worker → **Settings** → **Variables and Secrets** if needed:
 
 | Variable | Default | Description |
 |---|---|---|
-| `MAX_ZIP_BYTES` | `52428800` (50 MB) | Maximum zip archive size |
+| `MAX_ZIP_BYTES` | `52428800` (50 MB) | Maximum zip archive size before rejecting with 413 |
 | `MAX_OUTPUT_BYTES` | `10485760` (10 MB) | Maximum output size before truncation |
 | `MAX_FILE_COUNT` | `5000` | Maximum file count before truncation |
-| `CACHE_TTL_SECONDS` | `3600` (1 hour) | Cache TTL |
+| `CACHE_TTL_SECONDS` | `3600` (1 hour) | Cache TTL (only effective on custom domains) |
 
 ### Secrets
 
-| Secret | Purpose |
-|---|---|
-| `GITHUB_TOKEN` | Fine-grained PAT, public repo read-only. Raises rate limit from 60 to 5,000 req/hr. |
+| Secret | How to set | Purpose |
+|---|---|---|
+| `GITHUB_TOKEN` | Dashboard → Secrets, or `npx wrangler secret put GITHUB_TOKEN` | Fine-grained PAT, public repo read-only. Raises GitHub rate limit from 60 to 5,000 req/hr. |
+
+### Why a build step is required
+
+`ui/dist/` (the compiled Astro frontend) is excluded from git. Wrangler reads `assets.directory = "./ui/dist"` from `wrangler.jsonc` and uploads those files as static assets during deploy. If that directory does not exist at deploy time, the Worker deploys with no UI. The `npm run build` step compiles the Astro source in `ui/src/` into `ui/dist/` before Wrangler runs.
 
 ## Development
 
 ```sh
+# Build the Astro UI (required before deploying or running wrangler dev)
+npm run build
+
 # Run tests (169 tests)
 npm test
 
@@ -166,11 +189,8 @@ npm run test:watch
 # Type-check
 npm run typecheck
 
-# Local dev server
+# Local dev server (requires ui/dist/ to exist — run npm run build first)
 npm run dev
-
-# Build UI only
-npm run build:ui
 ```
 
 ## Architecture
