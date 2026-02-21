@@ -1,0 +1,597 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout title="GitPrism – Git to Markdown">
+  <style>
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 0;
+    }
+    header .container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    header .logo {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: var(--font-mono);
+    }
+    header .tagline {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    .hero {
+      padding: 48px 0 32px;
+      text-align: center;
+    }
+    .hero h1 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero p {
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+
+    .modes {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 720px;
+      margin: 0 auto 40px;
+    }
+    .mode-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: left;
+    }
+    .mode-card .mode-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: var(--accent);
+    }
+    .mode-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .mode-card code {
+      background: var(--bg);
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: var(--text);
+    }
+
+    .form-section {
+      max-width: 720px;
+      margin: 0 auto 40px;
+    }
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .form-card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    .field input, .field select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus, .field select:focus {
+      border-color: var(--accent);
+    }
+    .field .hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .fields-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .detail-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .detail-option {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .detail-option:hover { border-color: var(--accent); }
+    .detail-option.active {
+      border-color: var(--accent);
+      background: rgba(88, 166, 255, 0.08);
+    }
+    .detail-option input[type="radio"] { display: none; }
+    .detail-option .detail-name {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 3px;
+    }
+    .detail-option .detail-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 10px 20px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: background 0.15s;
+    }
+    .submit-btn:hover { background: var(--accent-hover); }
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: var(--bg);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner {
+      display: none;
+      background: rgba(248, 81, 73, 0.1);
+      border: 1px solid var(--error);
+      border-radius: var(--radius);
+      color: var(--error);
+      font-size: 13px;
+      padding: 12px 16px;
+      margin-top: 16px;
+    }
+
+    .result-section {
+      max-width: 960px;
+      margin: 0 auto 60px;
+      display: none;
+    }
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .result-header h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .result-meta {
+      display: flex;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .result-meta span { display: flex; align-items: center; gap: 4px; }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-hit { background: rgba(63, 185, 80, 0.15); color: var(--success); }
+    .badge-miss { background: rgba(210, 153, 34, 0.15); color: var(--warning); }
+    .badge-truncated { background: rgba(248, 81, 73, 0.15); color: var(--error); }
+
+    .result-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-sm {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 12px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+
+    .result-viewer {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: auto;
+      max-height: 70vh;
+    }
+    .result-viewer pre {
+      padding: 20px;
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 600px) {
+      .modes { grid-template-columns: 1fr; }
+      .fields-row { grid-template-columns: 1fr; }
+      .detail-options { grid-template-columns: repeat(2, 1fr); }
+      .hero h1 { font-size: 24px; }
+    }
+  </style>
+
+  <header>
+    <div class="container">
+      <span class="logo">GitPrism</span>
+      <span class="tagline">Tri-modal Git-to-Markdown pipeline</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h1>Convert GitHub repos to <span>LLM-ready Markdown</span></h1>
+        <p>
+          Instantly ingest any public repository into structured Markdown.
+          Works as a web UI, REST API, or MCP tool — all from a single endpoint.
+        </p>
+
+        <div class="modes">
+          <div class="mode-card">
+            <div class="mode-title">Web UI</div>
+            <p>Paste a GitHub URL below and get formatted Markdown output instantly.</p>
+          </div>
+          <div class="mode-card">
+            <div class="mode-title">REST API</div>
+            <p>
+              <code>GET /ingest?repo=owner/repo</code><br/>
+              Pipe results directly into your LLM context.
+            </p>
+          </div>
+          <div class="mode-card">
+            <div class="mode-title">MCP Tool</div>
+            <p>
+              Connect to <code>/mcp</code>.<br/>
+              Tool: <code>ingest_repo(url, detail)</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="container">
+        <div class="form-card">
+          <h2>Ingest a Repository</h2>
+          <form id="ingest-form">
+            <div class="field">
+              <label for="repo-url">GitHub URL</label>
+              <input
+                type="text"
+                id="repo-url"
+                name="repo"
+                placeholder="https://github.com/owner/repo or owner/repo"
+                required
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <p class="hint">Paste a GitHub URL, branch URL, or owner/repo shorthand.</p>
+            </div>
+
+            <div class="fields-row">
+              <div class="field">
+                <label for="ref">Branch / Tag / SHA <span style="font-weight:400">(optional)</span></label>
+                <input
+                  type="text"
+                  id="ref"
+                  name="ref"
+                  placeholder="main"
+                  autocomplete="off"
+                />
+                <p class="hint">Defaults to the repository's default branch.</p>
+              </div>
+              <div class="field">
+                <label for="path">Subdirectory <span style="font-weight:400">(optional)</span></label>
+                <input
+                  type="text"
+                  id="path"
+                  name="path"
+                  placeholder="src/components"
+                  autocomplete="off"
+                />
+                <p class="hint">Scope output to a specific directory.</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Detail Level</label>
+              <div class="detail-options" id="detail-options">
+                <label class="detail-option">
+                  <input type="radio" name="detail" value="summary" />
+                  <div class="detail-name">Summary</div>
+                  <div class="detail-desc">Name, ref, file count, total size.</div>
+                </label>
+                <label class="detail-option">
+                  <input type="radio" name="detail" value="structure" />
+                  <div class="detail-name">Structure</div>
+                  <div class="detail-desc">Summary + ASCII directory tree.</div>
+                </label>
+                <label class="detail-option">
+                  <input type="radio" name="detail" value="file-list" />
+                  <div class="detail-name">File List</div>
+                  <div class="detail-desc">Tree + table of files with sizes and line counts.</div>
+                </label>
+                <label class="detail-option active">
+                  <input type="radio" name="detail" value="full" checked />
+                  <div class="detail-name">Full</div>
+                  <div class="detail-desc">Everything + complete file contents.</div>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submit-btn">
+              <span class="spinner" id="spinner"></span>
+              <span id="submit-label">Ingest Repository</span>
+            </button>
+
+            <div class="error-banner" id="error-banner"></div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="result-section" id="result-section">
+      <div class="container">
+        <div class="result-header">
+          <div>
+            <h2 id="result-title">Output</h2>
+            <div class="result-meta" id="result-meta"></div>
+          </div>
+          <div class="result-actions">
+            <button class="btn-sm" id="copy-btn">Copy</button>
+            <button class="btn-sm" id="download-btn">Download .md</button>
+          </div>
+        </div>
+        <div class="result-viewer">
+          <pre id="result-content"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>
+        GitPrism &nbsp;·&nbsp;
+        <a href="/llms.txt">llms.txt</a> &nbsp;·&nbsp;
+        MCP: <code>/mcp</code> &nbsp;·&nbsp;
+        API: <code>/ingest?repo=owner/repo</code>
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // ── Detail level toggle ────────────────────────────────────────────────
+    const detailOptions = document.querySelectorAll('.detail-option');
+    detailOptions.forEach(opt => {
+      opt.addEventListener('click', () => {
+        detailOptions.forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+      });
+    });
+
+    // ── Form submission ────────────────────────────────────────────────────
+    const form = document.getElementById('ingest-form') as HTMLFormElement;
+    const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+    const spinner = document.getElementById('spinner') as HTMLElement;
+    const submitLabel = document.getElementById('submit-label') as HTMLElement;
+    const errorBanner = document.getElementById('error-banner') as HTMLElement;
+    const resultSection = document.getElementById('result-section') as HTMLElement;
+    const resultContent = document.getElementById('result-content') as HTMLElement;
+    const resultTitle = document.getElementById('result-title') as HTMLElement;
+    const resultMeta = document.getElementById('result-meta') as HTMLElement;
+
+    let lastContent = '';
+    let lastRepo = '';
+
+    function showError(msg: string) {
+      errorBanner.textContent = msg;
+      errorBanner.style.display = 'block';
+    }
+
+    function hideError() {
+      errorBanner.style.display = 'none';
+    }
+
+    function setLoading(loading: boolean) {
+      submitBtn.disabled = loading;
+      spinner.style.display = loading ? 'block' : 'none';
+      submitLabel.textContent = loading ? 'Ingesting…' : 'Ingest Repository';
+    }
+
+    function buildApiUrl(formData: FormData): string {
+      const repoInput = (formData.get('repo') as string || '').trim();
+      const ref = (formData.get('ref') as string || '').trim();
+      const path = (formData.get('path') as string || '').trim();
+      const detail = (formData.get('detail') as string || 'full');
+
+      // If the input looks like a full GitHub URL, use the shorthand proxy form
+      if (repoInput.startsWith('https://github.com/')) {
+        const params = new URLSearchParams();
+        if (detail) params.set('detail', detail);
+        const qs = params.toString();
+        return `/${repoInput}${qs ? '?' + qs : ''}`;
+      }
+
+      // Otherwise use the canonical query-param form
+      const params = new URLSearchParams();
+      params.set('repo', repoInput);
+      if (ref) params.set('ref', ref);
+      if (path) params.set('path', path);
+      params.set('detail', detail);
+      return `/ingest?${params.toString()}`;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      setLoading(true);
+      resultSection.style.display = 'none';
+
+      const formData = new FormData(form);
+      const apiUrl = buildApiUrl(formData);
+      lastRepo = (formData.get('repo') as string || '').trim();
+
+      try {
+        const res = await fetch(apiUrl);
+
+        if (!res.ok) {
+          let errorMsg = `Request failed (HTTP ${res.status})`;
+          try {
+            const body = await res.json() as { error?: string };
+            if (body.error) errorMsg = body.error;
+          } catch {}
+
+          if (res.status === 413) {
+            errorMsg = 'This repository is too large. Try specifying a subdirectory.';
+          } else if (res.status === 429) {
+            const retryAfter = res.headers.get('Retry-After');
+            errorMsg = `Rate limit reached. Please try again${retryAfter ? ` in ${retryAfter} seconds` : ' later'}.`;
+          } else if (res.status === 404) {
+            errorMsg = 'Repository not found. It may be private or misspelled.';
+          }
+          showError(errorMsg);
+          return;
+        }
+
+        const text = await res.text();
+        lastContent = text;
+
+        // Display result
+        resultContent.textContent = text;
+        resultTitle.textContent = `Output — ${lastRepo}`;
+
+        // Build metadata display from response headers
+        const fileCount = res.headers.get('X-File-Count');
+        const totalSize = res.headers.get('X-Total-Size');
+        const truncated = res.headers.get('X-Truncated');
+        const cacheStatus = res.headers.get('X-Cache');
+
+        const metaParts: string[] = [];
+        if (fileCount) metaParts.push(`${fileCount} files`);
+        if (totalSize) {
+          const bytes = parseInt(totalSize);
+          const sizeStr = bytes < 1024 * 1024
+            ? `${(bytes / 1024).toFixed(1)} KB`
+            : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+          metaParts.push(sizeStr);
+        }
+
+        let metaHtml = metaParts.map(p => `<span>${p}</span>`).join('');
+        if (cacheStatus) {
+          const cls = cacheStatus === 'HIT' ? 'badge-hit' : 'badge-miss';
+          metaHtml += ` <span><span class="badge ${cls}">${cacheStatus}</span></span>`;
+        }
+        if (truncated === 'true') {
+          metaHtml += ` <span><span class="badge badge-truncated">TRUNCATED</span></span>`;
+        }
+        resultMeta.innerHTML = metaHtml;
+        resultSection.style.display = 'block';
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch (err) {
+        showError('Network error. Please check your connection and try again.');
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ── Copy button ────────────────────────────────────────────────────────
+    document.getElementById('copy-btn')?.addEventListener('click', async () => {
+      if (!lastContent) return;
+      try {
+        await navigator.clipboard.writeText(lastContent);
+        const btn = document.getElementById('copy-btn') as HTMLButtonElement;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      } catch {}
+    });
+
+    // ── Download button ────────────────────────────────────────────────────
+    document.getElementById('download-btn')?.addEventListener('click', () => {
+      if (!lastContent) return;
+      const blob = new Blob([lastContent], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const fileName = lastRepo.replace('/', '-') || 'output';
+      a.href = url;
+      a.download = `${fileName}.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</Layout>
