@@ -22,10 +22,15 @@ function createServer(env: Env): McpServer {
     {
       description:
         "Convert a public GitHub repository or subdirectory into LLM-ready Markdown. " +
-        "Supports four detail levels: 'summary' (name, ref, file count), " +
+        "RECOMMENDED WORKFLOW FOR LARGE REPOS: " +
+        "1. Call with detail='file-list' to get the directory structure, file sizes, and line counts. " +
+        "2. Identify the relevant subdirectory from the file-list output. " +
+        "3. Call again with the subdirectory URL (e.g., 'owner/repo/tree/main/src') and detail='full' to get only the files you need. " +
+        "This two-step approach prevents consuming tens of thousands of tokens when calling detail='full' on an entire repository. " +
+        "Detail levels: 'summary' (repo name, ref, file count), " +
         "'structure' (summary + ASCII directory tree), " +
-        "'file-list' (structure + file paths with sizes and line counts), " +
-        "'full' (structure + complete file contents in fenced code blocks).",
+        "'file-list' (structure + file paths with sizes and line counts; RECOMMENDED FIRST STEP), " +
+        "'full' (structure + complete file contents in fenced code blocks; USE ON SUBDIRECTORIES).",
       inputSchema: {
         url: z
           .string()
