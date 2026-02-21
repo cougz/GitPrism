@@ -43,10 +43,14 @@ describe("Worker routing", () => {
     expect(text).toContain("GitPrism");
   });
 
-  it("routes /mcp to a 501 stub", async () => {
+  it("routes /mcp to the MCP handler (not static assets)", async () => {
+    const env = makeEnv();
     const req = new Request("https://gitprism.dev/mcp");
-    const res = await worker.fetch(req, makeEnv(), makeCtx());
-    expect(res.status).toBe(501);
+    const res = await worker.fetch(req, env, makeCtx());
+    // MCP handler is now live — it returns valid HTTP (not 501 stub, not proxied to ASSETS)
+    expect(res.status).not.toBe(501);
+    // ASSETS.fetch should not have been called for /mcp
+    expect((env.ASSETS.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(0);
   });
 
   it("routes /ingest to API handler (returns 400 for missing params)", async () => {

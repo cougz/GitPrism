@@ -1,18 +1,17 @@
 import { handleIngest } from "./api/handler";
 import { handleLlmsTxt } from "./api/llmstxt";
+import { createMcpFetchHandler } from "./mcp/server";
 import type { Env } from "./types";
+
+const mcpHandler = createMcpFetchHandler();
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
-    // MCP server (Phase 2 — stub until implemented)
+    // MCP server (stateless, no Durable Objects required)
     if (url.pathname.startsWith("/mcp")) {
-      // Will be replaced in Phase 2
-      return new Response(
-        JSON.stringify({ error: "MCP endpoint not yet configured" }),
-        { status: 501, headers: { "Content-Type": "application/json" } }
-      );
+      return mcpHandler(request, env, ctx);
     }
 
     // REST API — canonical form and URL-appended shorthand
