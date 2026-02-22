@@ -86,7 +86,8 @@ GET /https://github.com/owner/repo/tree/main/src?file-list
 |---|---|
 | `Content-Type` | `text/markdown; charset=utf-8` |
 | `X-Repo` | `owner/repo` |
-| `X-Ref` | Resolved ref (branch, tag, or SHA) |
+| `X-Ref` | Original ref requested (branch, tag, or SHA) |
+| `X-Commit-Sha` | Resolved commit SHA used for cache key |
 | `X-File-Count` | Number of files included |
 | `X-Total-Size` | Total size of included files in bytes |
 | `X-Truncated` | `true` if output was truncated |
@@ -179,7 +180,7 @@ Configured in `wrangler.jsonc` under `vars`. Override in the Cloudflare dashboar
 | `MAX_ZIP_BYTES` | `52428800` (50 MB) | Maximum zip archive size before rejecting with 413 |
 | `MAX_OUTPUT_BYTES` | `10485760` (10 MB) | Maximum output size before truncation |
 | `MAX_FILE_COUNT` | `5000` | Maximum file count before truncation |
-| `CACHE_TTL_SECONDS` | `3600` (1 hour) | Cache TTL (only effective on custom domains) |
+| `CACHE_TTL_SECONDS` | `86400` (24 hours) | Cache TTL for SHA-based cache keys |
 
 ### Secrets
 
@@ -297,7 +298,11 @@ The `ingest_repo` MCP tool is compatible with Code Mode agents by design:
 | Max output size | 10 MB | `MAX_OUTPUT_BYTES` env var |
 | Max file count | 5,000 | `MAX_FILE_COUNT` env var |
 | Rate limit | 30 req/min per IP | `wrangler.jsonc` ratelimits binding |
-| Cache TTL | 1 hour | `CACHE_TTL_SECONDS` env var |
+| Cache TTL | 24 hours | `CACHE_TTL_SECONDS` env var |
+
+**Caching behavior:**
+
+Cache keys use resolved commit SHAs for automatic invalidation when repos update. Old cache entries expire naturally after TTL. If SHA resolution fails, caching is skipped and fresh data is always fetched.
 
 ## License
 

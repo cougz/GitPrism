@@ -83,6 +83,31 @@ export async function checkZipSize(
   }
 }
 
+/**
+ * Resolves any ref (branch, tag, or SHA) to its commit SHA.
+ * Returns undefined if resolution fails (caller should skip caching).
+ */
+export async function resolveRefToSha(
+  owner: string,
+  repo: string,
+  ref: string,
+  env: Env
+): Promise<string | undefined> {
+  try {
+    const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits/${ref}`;
+    const res = await fetch(url, { headers: buildHeaders(env) });
+
+    if (!res.ok) {
+      return undefined;
+    }
+
+    const data = await res.json() as { sha: string };
+    return data.sha;
+  } catch {
+    return undefined;
+  }
+}
+
 export interface FetchZipballResult {
   data: Uint8Array;
   rateLimitRemaining: string;

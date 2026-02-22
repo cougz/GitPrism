@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { resolveDefaultRef, checkZipSize, fetchZipball } from "../../src/engine/fetcher";
+import { resolveDefaultRef, checkZipSize, fetchZipball, resolveRefToSha } from "../../src/engine/fetcher";
 import { RepoNotFoundError, ZipTooLargeError, GitHubApiError } from "../../src/types";
 import type { Env } from "../../src/types";
 
@@ -161,5 +161,55 @@ describe("fetchZipball", () => {
       new Response("Error", { status: 500 })
     );
     await expect(fetchZipball("owner", "repo", "main", makeEnv())).rejects.toThrow(GitHubApiError);
+  });
+});
+
+describe("resolveRefToSha", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("returns SHA from GitHub API for branch ref", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sha: "abc123def456" }), { status: 200 })
+    );
+    const sha = await resolveRefToSha("owner", "repo", "main", makeEnv());
+    expect(sha).toBe("abc123def456");
+  });
+
+  it("returns SHA from GitHub API for tag ref", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sha: "789xyz123" }), { status: 200 })
+    );
+    const sha = await resolveRefToSha("owner", "repo", "v1.0.0", makeEnv());
+    expect(sha).toBe("789xyz123");
+  });
+
+  it("returns undefined on 404", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response("Not Found", { status: 404 })
+    );
+    const sha = await resolveRefToSha("owner", "nonexistent", "main", makeEnv());
+    expect(sha).toBeUndefined();
+  });
+
+  it("returns undefined on 500", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response("Error", { status: 500 })
+    );
+    const sha = await resolveRefToSha("owner", "repo", "main", makeEnv());
+    expect(sha).toBeUndefined();
+  });
+
+  it("includes Authorization header when GITHUB_TOKEN is set", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sha: "abc123" }), { status: 200 })
+    );
+    await resolveRefToSha("owner", "repo", "main", makeEnv("mytoken"));
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer mytoken");
   });
 });

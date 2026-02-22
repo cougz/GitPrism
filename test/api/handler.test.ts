@@ -48,10 +48,14 @@ const zipData = makeZip({ "src/index.ts": "const x = 1;\nexport default x;\n" })
 describe("handleIngest – happy path", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
+    // Mock SHA resolution: resolve ref to SHA
     // Mock HEAD (size check): Content-Length within limit
-    // Mock GET (repo info): default branch
     // Mock GET (zipball): zip data
     (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(
+        // SHA resolution
+        new Response(JSON.stringify({ sha: "abc123def456" }), { status: 200 }
+      )
       .mockResolvedValueOnce(
         // HEAD size check
         new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
@@ -204,3 +208,5 @@ describe("handleIngest – no-cache param", () => {
     expect(res.status).toBe(200);
   });
 });
+
+

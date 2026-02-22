@@ -74,4 +74,14 @@ describe("buildResponseHeaders", () => {
     expect(headers.get("X-RateLimit-Remaining")).toBeNull();
     expect(headers.get("X-RateLimit-Reset")).toBeNull();
   });
+
+  it("sets X-Commit-Sha when commitSha is provided", () => {
+    const headers = buildResponseHeaders({ result: mockResult, commitSha: "abc123def456" });
+    expect(headers.get("X-Commit-Sha")).toBe("abc123def456");
+  });
+
+  it("omits X-Commit-Sha when commitSha is not provided", () => {
+    const headers = buildResponseHeaders({ result: mockResult });
+    expect(headers.get("X-Commit-Sha")).toBeNull();
+  });
 });

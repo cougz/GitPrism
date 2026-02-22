@@ -1,5 +1,5 @@
 import { parseRequest } from "../engine/parser";
-import { resolveDefaultRef, checkZipSize, fetchZipball } from "../engine/fetcher";
+import { resolveDefaultRef, checkZipSize, fetchZipball, resolveRefToSha } from "../engine/fetcher";
 import { decompressAndProcess } from "../engine/decompressor";
 import { formatOutput, formatFileBlock, formatSummary, formatTree } from "../engine/formatter";
 import { buildResponseHeaders } from "../utils/headers";
@@ -49,7 +49,7 @@ export async function handleIngest(
     return jsonError(400, "Invalid request.");
   }
 
-  const { owner, repo, detail, noCache } = parsed;
+  const { owner, repo, detail, noCache, ref: originalRef } = parsed;
 
   // ── 2. Rate limit check ───────────────────────────────────────────────────
   const clientIP = getClientIP(request);
@@ -68,11 +68,26 @@ export async function handleIngest(
     );
   }
 
-  // Build rate-limit response early for 429
-  const cacheKey = buildCacheKey(parsed);
+  // ── 3. Resolve ref to commit SHA ────────────────────────────────────────────
+  let resolvedRef: string | undefined;
+  let resolvedSha: string | undefined;
 
-  // ── 3. Check cache ────────────────────────────────────────────────────────
-  if (!noCache) {
+  if (!originalRef) {
+    resolvedRef = await resolveDefaultRef(owner, repo, env);
+    resolvedSha = await resolveRefToSha(owner, repo, resolvedRef, env);
+  } else {
+    resolvedRef = originalRef;
+    resolvedSha = await resolveRefToSha(owner, repo, originalRef, env);
+  }
+
+  // ── 4. Build cache key with SHA (or ref if SHA resolution failed) ───────
+  const cacheKey = buildCacheKey(parsed, resolvedSha);
+
+  // ── 5. Check cache (skip if no-cache=true or SHA resolution failed) ─────────
+  const cachingEnabled = resolvedSha !== undefined;
+  const shouldCheckCache = cachingEnabled && !noCache;
+
+  if (shouldCheckCache) {
     const cached = await getCached(cacheKey);
     if (cached) {
       const cachedResponse = new Response(cached.body, {
@@ -85,16 +100,13 @@ export async function handleIngest(
   }
 
   try {
-    // ── 4. Resolve default ref ──────────────────────────────────────────────
-    let ref = parsed.ref;
-    if (!ref) {
-      ref = await resolveDefaultRef(owner, repo, env);
-    }
+    // ── 6. Use resolvedRef for all operations ────────────────────────────────────
+    const ref = resolvedRef;
 
-    // ── 5. Pre-flight size check ────────────────────────────────────────────
+    // ── 7. Pre-flight size check ────────────────────────────────────────────
     await checkZipSize(owner, repo, ref, env);
 
-    // ── 6. Fetch zipball ────────────────────────────────────────────────────
+    // ── 8. Fetch zipball ────────────────────────────────────────────────────
     const { data: zipData, rateLimitRemaining, rateLimitReset } = await fetchZipball(
       owner,
       repo,
@@ -102,7 +114,7 @@ export async function handleIngest(
       env
     );
 
-    // ── 7. Decompress and process ───────────────────────────────────────────
+    // ── 9. Decompress and process ───────────────────────────────────────────
     const maxOutputBytes = parseInt(env.MAX_OUTPUT_BYTES ?? "10485760", 10);
     const maxFileCount = parseInt(env.MAX_FILE_COUNT ?? "5000", 10);
 
@@ -117,22 +129,25 @@ export async function handleIngest(
     result.owner = owner;
     result.repo = repo;
     result.repoName = `${owner}/${repo}`;
-    result.ref = ref;
+    result.ref = originalRef ?? ref;
 
-    // ── 8. Build response headers ───────────────────────────────────────────
+    // ── 10. Build response headers ───────────────────────────────────────────
     const headers = buildResponseHeaders({
       result,
       rateLimitRemaining,
       rateLimitReset,
       cacheStatus: "MISS",
+      commitSha: resolvedSha,
     });
 
-    // ── 9. Emit structured log ──────────────────────────────────────────────
+    // ── 11. Emit structured log ──────────────────────────────────────────────
     console.log(
       JSON.stringify({
         event: "ingest",
         repo: `${owner}/${repo}`,
         ref,
+        originalRef,
+        resolvedSha,
         detail,
         cacheHit: false,
         fileCount: result.fileCount,
@@ -143,7 +158,7 @@ export async function handleIngest(
       })
     );
 
-    // ── 10. Stream response for detail=full, otherwise return all at once ───
+    // ── 12. Stream response for detail=full, otherwise return all at once ───
     if (detail === "full") {
       const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
       const writer = writable.getWriter();
@@ -175,8 +190,12 @@ export async function handleIngest(
         status: 200,
         headers: new Headers(headers),
       });
-      const cacheTtl = parseInt(env.CACHE_TTL_SECONDS ?? "3600", 10);
-      putCache(cacheKey, cacheableResponse, cacheTtl, ctx);
+
+      // Only cache if SHA resolution succeeded
+      if (cachingEnabled && !noCache) {
+        const cacheTtl = parseInt(env.CACHE_TTL_SECONDS ?? "86400", 10);
+        putCache(cacheKey, cacheableResponse, cacheTtl, ctx);
+      }
 
       return response;
     }
@@ -185,9 +204,11 @@ export async function handleIngest(
     const content = formatOutput(result, detail);
     const response = new Response(content, { status: 200, headers });
 
-    // Cache the response
-    const cacheTtl = parseInt(env.CACHE_TTL_SECONDS ?? "3600", 10);
-    putCache(cacheKey, response.clone(), cacheTtl, ctx);
+    // Only cache if SHA resolution succeeded
+    if (cachingEnabled && !noCache) {
+      const cacheTtl = parseInt(env.CACHE_TTL_SECONDS ?? "86400", 10);
+      putCache(cacheKey, response.clone(), cacheTtl, ctx);
+    }
 
     return response;
   } catch (err) {

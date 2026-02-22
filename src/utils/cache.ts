@@ -4,13 +4,18 @@ const CACHE_BASE_URL = "https://gitprism.cloudemo.org/cache/";
 
 /**
  * Builds a normalized cache key request from parsed request params.
+ * If sha is provided, uses it instead of ref for cache key.
  * The URL is normalized to ensure identical params produce the same key.
  */
-export function buildCacheKey(parsed: ParsedRequest): Request {
+export function buildCacheKey(
+  parsed: ParsedRequest,
+  sha?: string
+): Request {
   const params = new URLSearchParams();
   params.set("owner", parsed.owner);
   params.set("repo", parsed.repo);
-  if (parsed.ref) params.set("ref", parsed.ref);
+  const keyRef = sha ?? parsed.ref ?? "default";
+  params.set("ref", keyRef);
   if (parsed.path) params.set("path", parsed.path);
   params.set("detail", parsed.detail);
 

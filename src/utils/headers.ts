@@ -5,6 +5,7 @@ export interface BuildHeadersParams {
   rateLimitRemaining?: string;
   rateLimitReset?: string;
   cacheStatus?: "HIT" | "MISS";
+  commitSha?: string;
 }
 
 /**
@@ -15,6 +16,7 @@ export function buildResponseHeaders({
   rateLimitRemaining,
   rateLimitReset,
   cacheStatus = "MISS",
+  commitSha,
 }: BuildHeadersParams): Headers {
   const headers = new Headers({
     "Content-Type": "text/markdown; charset=utf-8",
@@ -25,6 +27,10 @@ export function buildResponseHeaders({
     "X-Truncated": String(result.truncated),
     "X-Cache": cacheStatus,
   });
+
+  if (commitSha) {
+    headers.set("X-Commit-Sha", commitSha);
+  }
 
   if (rateLimitRemaining) {
     headers.set("X-RateLimit-Remaining", rateLimitRemaining);
