@@ -1,5 +1,7 @@
 # GitPrism
 
+![Dashboard](./dashboard.png)
+
 A fast, token-efficient, stateless pipeline that converts public GitHub repositories into LLM-ready Markdown. Deployed as a single Cloudflare Worker serving humans, AI agents, and MCP clients from one shared core engine.
 
 ```
