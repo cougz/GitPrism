@@ -38,6 +38,13 @@ export async function resolveDefaultRef(
   if (res.status === 404) {
     throw new RepoNotFoundError(`Repository ${owner}/${repo} not found or is private.`);
   }
+  if (res.status === 403) {
+    const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
+    if (rateLimitRemaining === "0") {
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded (60 requests/hour for unauthenticated requests). The operator should set GITHUB_TOKEN for higher limits (5000 requests/hour).`);
+    }
+    throw new GitHubApiError(403, `GitHub API access denied. Unauthenticated requests are limited. Set GITHUB_TOKEN for reliable access.`);
+  }
   if (!res.ok) {
     throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);
   }
@@ -65,6 +72,13 @@ export async function checkZipSize(
 
   if (res.status === 404) {
     throw new RepoNotFoundError(`Repository ${owner}/${repo} not found or is private.`);
+  }
+  if (res.status === 403) {
+    const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
+    if (rateLimitRemaining === "0") {
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded (60 requests/hour for unauthenticated requests). The operator should set GITHUB_TOKEN for higher limits (5000 requests/hour).`);
+    }
+    throw new GitHubApiError(403, `GitHub API access denied. Unauthenticated requests are limited. Set GITHUB_TOKEN for reliable access.`);
   }
   if (!res.ok) {
     throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);
@@ -131,6 +145,13 @@ export async function fetchZipball(
 
   if (res.status === 404) {
     throw new RepoNotFoundError(`Repository ${owner}/${repo} not found or is private.`);
+  }
+  if (res.status === 403) {
+    const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
+    if (rateLimitRemaining === "0") {
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded (60 requests/hour for unauthenticated requests). The operator should set GITHUB_TOKEN for higher limits (5000 requests/hour).`);
+    }
+    throw new GitHubApiError(403, `GitHub API access denied. Unauthenticated requests are limited. Set GITHUB_TOKEN for reliable access.`);
   }
   if (!res.ok) {
     throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);

@@ -254,7 +254,8 @@ export async function handleIngest(
       return jsonError(413, err.message);
     }
     if (err instanceof GitHubApiError) {
-      return jsonError(502, `GitHub API returned ${err.status}`);
+      const status = err.status === 403 ? 429 : 502; // Return 429 for rate limit issues
+      return jsonError(status, err.message);
     }
     if (err instanceof DecompressionError) {
       return jsonError(422, `Failed to process repository archive: ${err.message}`);
