@@ -6,11 +6,11 @@ import { buildResponseHeaders } from "../utils/headers";
 import { checkRateLimit } from "../utils/ratelimit";
 import { buildCacheKey, getCached, putCache } from "../utils/cache";
 import {
-  ParseError,
-  RepoNotFoundError,
-  ZipTooLargeError,
-  GitHubApiError,
-  DecompressionError,
+  isParseError,
+  isRepoNotFoundError,
+  isZipTooLargeError,
+  isGitHubApiError,
+  isDecompressionError,
   type Env,
 } from "../types";
 
@@ -44,8 +44,8 @@ export async function handleIngest(
   try {
     parsed = parseRequest(request);
   } catch (err) {
-    if (err instanceof ParseError) {
-      return jsonError(400, err.message);
+    if (isParseError(err)) {
+      return jsonError(400, (err as Error).message);
     }
     return jsonError(400, "Invalid request.");
   }
@@ -247,21 +247,22 @@ export async function handleIngest(
     };
     console.error(JSON.stringify(errorLog));
 
-    if (err instanceof RepoNotFoundError) {
+    if (isRepoNotFoundError(err)) {
       return jsonError(404, "Repository not found or is private");
     }
-    if (err instanceof ZipTooLargeError) {
-      return jsonError(413, err.message);
+    if (isZipTooLargeError(err)) {
+      return jsonError(413, (err as Error).message);
     }
-    if (err instanceof GitHubApiError) {
-      const status = err.status === 403 ? 429 : 502; // Return 429 for rate limit issues
-      return jsonError(status, err.message);
+    if (isGitHubApiError(err)) {
+      const apiErr = err as { status: number; message: string };
+      const status = apiErr.status === 403 ? 429 : 502;
+      return jsonError(status, apiErr.message);
     }
-    if (err instanceof DecompressionError) {
-      return jsonError(422, `Failed to process repository archive: ${err.message}`);
+    if (isDecompressionError(err)) {
+      return jsonError(422, `Failed to process repository archive: ${(err as Error).message}`);
     }
-    if (err instanceof ParseError) {
-      return jsonError(400, err.message);
+    if (isParseError(err)) {
+      return jsonError(400, (err as Error).message);
     }
     // Unexpected error
     return jsonError(500, "Internal server error");

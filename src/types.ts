@@ -39,6 +39,7 @@ export interface IngestResult {
 }
 
 export class ParseError extends Error {
+  readonly __type = "ParseError";
   constructor(message: string) {
     super(message);
     this.name = "ParseError";
@@ -46,6 +47,7 @@ export class ParseError extends Error {
 }
 
 export class RepoNotFoundError extends Error {
+  readonly __type = "RepoNotFoundError";
   constructor(message: string) {
     super(message);
     this.name = "RepoNotFoundError";
@@ -53,6 +55,7 @@ export class RepoNotFoundError extends Error {
 }
 
 export class ZipTooLargeError extends Error {
+  readonly __type = "ZipTooLargeError";
   constructor(message: string) {
     super(message);
     this.name = "ZipTooLargeError";
@@ -61,6 +64,7 @@ export class ZipTooLargeError extends Error {
 
 export class GitHubApiError extends Error {
   status: number;
+  readonly __type = "GitHubApiError";
   constructor(status: number, message: string) {
     super(message);
     this.name = "GitHubApiError";
@@ -69,8 +73,30 @@ export class GitHubApiError extends Error {
 }
 
 export class DecompressionError extends Error {
+  readonly __type = "DecompressionError";
   constructor(message: string) {
     super(message);
     this.name = "DecompressionError";
   }
+}
+
+// Type guards that work after bundling
+export function isParseError(err: unknown): err is ParseError {
+  return err instanceof Error && (err as ParseError).__type === "ParseError";
+}
+
+export function isRepoNotFoundError(err: unknown): err is RepoNotFoundError {
+  return err instanceof Error && (err as RepoNotFoundError).__type === "RepoNotFoundError";
+}
+
+export function isZipTooLargeError(err: unknown): err is ZipTooLargeError {
+  return err instanceof Error && (err as ZipTooLargeError).__type === "ZipTooLargeError";
+}
+
+export function isGitHubApiError(err: unknown): err is GitHubApiError {
+  return err instanceof Error && (err as GitHubApiError).__type === "GitHubApiError";
+}
+
+export function isDecompressionError(err: unknown): err is DecompressionError {
+  return err instanceof Error && (err as DecompressionError).__type === "DecompressionError";
 }

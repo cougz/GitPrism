@@ -40,10 +40,20 @@ export async function resolveDefaultRef(
   }
   if (res.status === 403) {
     const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
-    if (rateLimitRemaining === "0") {
-      throw new GitHubApiError(403, `GitHub API rate limit exceeded (60 requests/hour for unauthenticated requests). The operator should set GITHUB_TOKEN for higher limits (5000 requests/hour).`);
+    const rateLimitReset = res.headers.get("X-RateLimit-Reset");
+    
+    // If X-RateLimit-Remaining header exists and is "0", it's definitely rate limiting
+    if (rateLimitRemaining !== null && rateLimitRemaining === "0") {
+      const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toISOString() : "soon";
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded. Resets at ${resetTime}.`);
     }
-    throw new GitHubApiError(403, `GitHub API access denied. Unauthenticated requests are limited. Set GITHUB_TOKEN for reliable access.`);
+    
+    // For other 403s, try to get more details from response
+    const body = await res.text();
+    const message = body.includes("rate limit") 
+      ? "GitHub API rate limit exceeded." 
+      : `GitHub API access denied: ${body || "403 Forbidden"}`;
+    throw new GitHubApiError(403, message);
   }
   if (!res.ok) {
     throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);
@@ -75,10 +85,13 @@ export async function checkZipSize(
   }
   if (res.status === 403) {
     const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
-    if (rateLimitRemaining === "0") {
-      throw new GitHubApiError(403, `GitHub API rate limit exceeded (60 requests/hour for unauthenticated requests). The operator should set GITHUB_TOKEN for higher limits (5000 requests/hour).`);
+    const rateLimitReset = res.headers.get("X-RateLimit-Reset");
+    
+    if (rateLimitRemaining !== null && rateLimitRemaining === "0") {
+      const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toISOString() : "soon";
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded. Resets at ${resetTime}.`);
     }
-    throw new GitHubApiError(403, `GitHub API access denied. Unauthenticated requests are limited. Set GITHUB_TOKEN for reliable access.`);
+    throw new GitHubApiError(403, "GitHub API access denied (403)");
   }
   if (!res.ok) {
     throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);
@@ -148,10 +161,13 @@ export async function fetchZipball(
   }
   if (res.status === 403) {
     const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
-    if (rateLimitRemaining === "0") {
-      throw new GitHubApiError(403, `GitHub API rate limit exceeded (60 requests/hour for unauthenticated requests). The operator should set GITHUB_TOKEN for higher limits (5000 requests/hour).`);
+    const rateLimitReset = res.headers.get("X-RateLimit-Reset");
+    
+    if (rateLimitRemaining !== null && rateLimitRemaining === "0") {
+      const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toISOString() : "soon";
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded. Resets at ${resetTime}.`);
     }
-    throw new GitHubApiError(403, `GitHub API access denied. Unauthenticated requests are limited. Set GITHUB_TOKEN for reliable access.`);
+    throw new GitHubApiError(403, "GitHub API access denied (403)");
   }
   if (!res.ok) {
     throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);
