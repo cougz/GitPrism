@@ -21,9 +21,13 @@
     }
   ],
   "vars": {
-    "MAX_ZIP_BYTES": "52428800",
+    "MAX_ZIP_BYTES": "52428850",
     "MAX_OUTPUT_BYTES": "10485760",
     "MAX_FILE_COUNT": "5000",
     "CACHE_TTL_SECONDS": "86400"
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1.0
   }
 }

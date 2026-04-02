@@ -1,6 +1,6 @@
-import { unzipSync } from "fflate";
+import { unzipSync, type Unzipped } from "fflate";
 import { shouldIgnorePath, isBinaryContent, parseGitignore, filterBySubpath } from "./filter";
-import type { DetailLevel, FileEntry, IngestResult } from "../types";
+import { DecompressionError, type DetailLevel, type FileEntry, type IngestResult } from "../types";
 
 export interface DecompressOptions {
   subpath?: string;
@@ -23,7 +23,24 @@ export function decompressAndProcess(
   const { detail, maxOutputBytes, maxFileCount } = options;
   const subpath = options.subpath ?? "";
 
-  const unzipped = unzipSync(zipData);
+  // Validate zip data
+  if (!zipData || zipData.length === 0) {
+    throw new DecompressionError("Empty zip data received");
+  }
+
+  // Decompress with error handling
+  let unzipped: Unzipped;
+  try {
+    unzipped = unzipSync(zipData);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown decompression error";
+    throw new DecompressionError(`Failed to decompress zip archive: ${message}`);
+  }
+
+  // Validate decompression result
+  if (!unzipped || Object.keys(unzipped).length === 0) {
+    throw new DecompressionError("Zip archive appears to be empty or corrupted");
+  }
 
   // ── Determine the top-level prefix to strip ──────────────────────────────
   // GitHub zip: all entries start with owner-repo-sha/

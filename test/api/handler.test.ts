@@ -54,7 +54,7 @@ describe("handleIngest – happy path", () => {
     (fetch as ReturnType<typeof vi.fn>)
       .mockResolvedValueOnce(
         // SHA resolution
-        new Response(JSON.stringify({ sha: "abc123def456" }), { status: 200 }
+        new Response(JSON.stringify({ sha: "abc123def456" }), { status: 200 })
       )
       .mockResolvedValueOnce(
         // HEAD size check

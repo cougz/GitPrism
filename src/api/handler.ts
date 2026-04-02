@@ -10,6 +10,7 @@ import {
   RepoNotFoundError,
   ZipTooLargeError,
   GitHubApiError,
+  DecompressionError,
   type Env,
 } from "../types";
 
@@ -169,23 +170,46 @@ export async function handleIngest(
       const header =
         summaryBlock + "\n## Directory Structure\n\n" + treeBlock + "\n## File Contents\n\n";
 
+      // Wrap streaming in try-catch to prevent unhandled promise rejections
       ctx.waitUntil(
         (async () => {
-          await writer.write(encoder.encode(header));
-          for (const file of result.files) {
-            await writer.write(encoder.encode(formatFileBlock(file)));
+          try {
+            await writer.write(encoder.encode(header));
+            for (const file of result.files) {
+              try {
+                await writer.write(encoder.encode(formatFileBlock(file)));
+              } catch (writeErr) {
+                console.error("Error writing file block:", writeErr);
+                // Continue with other files
+              }
+            }
+            if (result.truncated && result.truncationMessage) {
+              await writer.write(encoder.encode("\n" + result.truncationMessage + "\n"));
+            }
+          } catch (streamErr) {
+            console.error("Streaming error:", streamErr);
+          } finally {
+            try {
+              await writer.close();
+            } catch {
+              // Ignore close errors
+            }
           }
-          if (result.truncated && result.truncationMessage) {
-            await writer.write(encoder.encode("\n" + result.truncationMessage + "\n"));
-          }
-          await writer.close();
         })()
       );
 
       const response = new Response(readable, { headers });
 
       // Cache a non-streaming clone: build the full string and cache it
-      const fullContent = formatOutput(result, "full");
+      let fullContent: string;
+      try {
+        fullContent = formatOutput(result, "full");
+      } catch (formatErr) {
+        console.error("Error formatting output for cache:", formatErr);
+        // If formatting fails, still return the streaming response but skip caching
+        return response;
+      }
+      
       const cacheableResponse = new Response(fullContent, {
         status: 200,
         headers: new Headers(headers),
@@ -212,6 +236,17 @@ export async function handleIngest(
 
     return response;
   } catch (err) {
+    // Log error details for observability
+    const errorLog = {
+      event: "error",
+      repo: `${owner}/${repo}`,
+      ref: resolvedRef,
+      errorType: err instanceof Error ? err.name : "Unknown",
+      errorMessage: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    };
+    console.error(JSON.stringify(errorLog));
+
     if (err instanceof RepoNotFoundError) {
       return jsonError(404, "Repository not found or is private");
     }
@@ -221,8 +256,13 @@ export async function handleIngest(
     if (err instanceof GitHubApiError) {
       return jsonError(502, `GitHub API returned ${err.status}`);
     }
+    if (err instanceof DecompressionError) {
+      return jsonError(422, `Failed to process repository archive: ${err.message}`);
+    }
+    if (err instanceof ParseError) {
+      return jsonError(400, err.message);
+    }
     // Unexpected error
-    console.error("Unexpected error in handleIngest:", err);
     return jsonError(500, "Internal server error");
   }
 }

@@ -187,13 +187,24 @@ export function formatFileList(result: IngestResult): string {
 // ── Full content ──────────────────────────────────────────────────────────────
 
 export function formatFileBlock(file: FileEntry): string {
-  const lang = detectLanguage(file.path);
+  // Defensive checks for edge cases
+  if (!file) {
+    return "<!-- [ERROR] Invalid file entry -->\n";
+  }
+  
+  const path = file.path ?? "unknown";
+  const lang = detectLanguage(path);
   const fence = `\`\`\`${lang}`;
+  const content = file.content ?? "";
+  
+  // Sanitize content to prevent markdown issues
+  const safeContent = content.replace(/\0/g, ""); // Remove null bytes
+  
   return [
-    `### \`${file.path}\``,
+    `### \`${path}\``,
     "",
     fence,
-    file.content ?? "",
+    safeContent,
     "```",
     "",
   ].join("\n");
