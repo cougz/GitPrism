@@ -90,9 +90,6 @@ export async function handleIngest(
   // ── 5. Build cache key with SHA (or ref if SHA resolution failed) ───────
   const cacheKey = buildCacheKey(parsed, resolvedSha);
 
-  // ── 5. Build cache key with SHA (or ref if SHA resolution failed) ───────
-  const cacheKey = buildCacheKey(parsed, resolvedSha);
-
   // ── 6. Check cache (skip if no-cache=true or SHA resolution failed) ─────────
   const cachingEnabled = resolvedSha !== undefined;
   const shouldCheckCache = cachingEnabled && !noCache;
