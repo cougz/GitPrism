@@ -279,13 +279,53 @@ export function formatCombinedOutput(
 ): string {
   const parts: string[] = [];
   
-  // Process in a logical order
-  for (const detail of details) {
-    if (detail === "commits" && commits) {
-      parts.push(formatCommits(commits.owner, commits.repo, commits.ref, commits.commits));
-    } else if (detail !== "commits") {
-      parts.push(formatOutput(result, detail));
+  // Always start with summary once
+  parts.push(formatSummary(result));
+  
+  // Check which detail levels are selected
+  const hasStructure = details.includes("structure");
+  const hasFileList = details.includes("file-list");
+  const hasFull = details.includes("full");
+  const hasCommitsDetail = details.includes("commits");
+  
+  // Include directory structure if any of these are selected
+  if (hasStructure || hasFileList || hasFull) {
+    parts.push("## Directory Structure\n\n" + formatTree(result.files));
+  }
+  
+  // Include file list table if selected
+  if (hasFileList) {
+    const rows = result.files
+      .map((f) => `| ${f.path} | ${f.size} | ${f.lines ?? "-"} |`)
+      .join("\n");
+    
+    const table = [
+      "## File List",
+      "",
+      "| Path | Size (bytes) | Lines |",
+      "|------|-------------|-------|",
+      rows,
+      "",
+    ].join("\n");
+    
+    parts.push(table);
+  }
+  
+  // Include full file contents if selected
+  if (hasFull) {
+    let content = "## File Contents\n\n";
+    for (const file of result.files) {
+      content += formatFileBlock(file);
     }
+    if (result.truncated && result.truncationMessage) {
+      content += "\n" + result.truncationMessage + "\n";
+    }
+    parts.push(content);
+  }
+  
+  // Include commits if selected
+  if (hasCommitsDetail && commits) {
+    parts.push(formatCommits(commits.owner, commits.repo, commits.ref, commits.commits));
   }
   
   return parts.join("\n\n---\n\n");
