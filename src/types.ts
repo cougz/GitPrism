@@ -15,7 +15,7 @@ export interface ParsedRequest {
   repo: string;
   ref?: string;
   path?: string;
-  detail: DetailLevel;
+  detail: DetailLevel[];
   noCache: boolean;
   userToken?: string;
 }

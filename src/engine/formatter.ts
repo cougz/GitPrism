@@ -271,3 +271,22 @@ export function formatOutput(result: IngestResult, detail: DetailLevel): string 
       return formatFull(result);
   }
 }
+
+export function formatCombinedOutput(
+  result: IngestResult,
+  details: DetailLevel[],
+  commits?: { owner: string; repo: string; ref: string; commits: CommitInfo[] }
+): string {
+  const parts: string[] = [];
+  
+  // Process in a logical order
+  for (const detail of details) {
+    if (detail === "commits" && commits) {
+      parts.push(formatCommits(commits.owner, commits.repo, commits.ref, commits.commits));
+    } else if (detail !== "commits") {
+      parts.push(formatOutput(result, detail));
+    }
+  }
+  
+  return parts.join("\n\n---\n\n");
+}

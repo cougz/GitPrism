@@ -1,7 +1,7 @@
 import { parseRequest } from "../engine/parser";
 import { resolveDefaultRef, checkZipSize, fetchZipball, resolveRefToSha, fetchCommits } from "../engine/fetcher";
 import { decompressAndProcess } from "../engine/decompressor";
-import { formatOutput, formatFileBlock, formatSummary, formatTree, formatCommits } from "../engine/formatter";
+import { formatOutput, formatFileBlock, formatSummary, formatTree, formatCommits, formatCombinedOutput } from "../engine/formatter";
 import { buildResponseHeaders } from "../utils/headers";
 import { checkRateLimit } from "../utils/ratelimit";
 import { buildCacheKey, getCached, putCache } from "../utils/cache";
@@ -121,20 +121,30 @@ export async function handleIngest(
   }
 
   try {
-    console.log("[INGEST] Starting processing, detail level:", detail);
+    console.log("[INGEST] Starting processing, detail levels:", detail);
     
     if (!resolvedRef) {
       console.error("[INGEST] resolvedRef is undefined");
       return jsonError(500, "Failed to resolve repository ref");
     }
     
-    // ── 7. Special handling for commits detail level ─────────────────────────────
-    if (detail === "commits") {
-      console.log("[INGEST] Handling commits detail level");
+    const ref = resolvedRef;
+    const hasCommits = detail.includes("commits");
+    const nonCommitsDetails = detail.filter(d => d !== "commits");
+    const hasNonCommitsDetails = nonCommitsDetails.length > 0;
+    
+    // Fetch commits data if requested
+    let commitsData: { owner: string; repo: string; ref: string; commits: Awaited<ReturnType<typeof fetchCommits>> } | undefined;
+    if (hasCommits) {
+      console.log("[INGEST] Fetching commits");
       const commits = await fetchCommits(owner, repo, resolvedRef, env, userToken, parsed.path);
       console.log("[INGEST] Fetched commits:", commits.length);
-      const content = formatCommits(owner, repo, resolvedRef, commits);
-
+      commitsData = { owner, repo, ref: resolvedRef, commits };
+    }
+    
+    // If only commits requested, return early
+    if (!hasNonCommitsDetails && commitsData) {
+      const content = formatCommits(commitsData.owner, commitsData.repo, commitsData.ref, commitsData.commits);
       const headers = new Headers({
         "Content-Type": "text/markdown; charset=utf-8",
         "X-Repo": `${owner}/${repo}`,
@@ -143,32 +153,25 @@ export async function handleIngest(
         "X-Cache": "MISS",
         "X-Token-Source": userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
       });
-
-      console.log(
-        JSON.stringify({
-          event: "ingest",
-          repo: `${owner}/${repo}`,
-          ref: resolvedRef,
-          detail: "commits",
-          commitCount: commits.length,
-          tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
-          latencyMs: Date.now() - startTime,
-        })
-      );
-
+      
+      console.log(JSON.stringify({
+        event: "ingest",
+        repo: `${owner}/${repo}`,
+        ref: resolvedRef,
+        detail: "commits",
+        commitCount: commitsData.commits.length,
+        tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
+        latencyMs: Date.now() - startTime,
+      }));
+      
       return new Response(content, { status: 200, headers });
     }
-
-    // ── 8. Use resolvedRef for all operations ────────────────────────────────────
-    const ref = resolvedRef;
-    console.log("[INGEST] Processing detail level:", detail, "ref:", ref);
-
-    // ── 8. Pre-flight size check ────────────────────────────────────────────
+    
+    // Fetch and process zipball for non-commits detail levels
     console.log("[INGEST] Checking zip size");
     await checkZipSize(owner, repo, ref, env, userToken);
     console.log("[INGEST] Zip size check passed");
-
-    // ── 9. Fetch zipball ────────────────────────────────────────────────────
+    
     console.log("[INGEST] Fetching zipball");
     const { data: zipData, rateLimitRemaining, rateLimitReset } = await fetchZipball(
       owner,
@@ -178,25 +181,27 @@ export async function handleIngest(
       userToken
     );
     console.log("[INGEST] Zipball fetched, size:", zipData.length);
-
-    // ── 10. Decompress and process ───────────────────────────────────────────
+    
+    // Decompress and process
     const maxOutputBytes = parseInt(env.MAX_OUTPUT_BYTES ?? "10485760", 10);
     const maxFileCount = parseInt(env.MAX_FILE_COUNT ?? "5000", 10);
-
+    
+    // For combined mode, use "full" detail level for processing to get all file data
+    const processingDetail = nonCommitsDetails.length === 1 ? nonCommitsDetails[0] : "full";
     const result = decompressAndProcess(zipData, {
       subpath: parsed.path,
-      detail,
+      detail: processingDetail,
       maxOutputBytes,
       maxFileCount,
     });
-
+    
     // Fill in metadata from parsed request
     result.owner = owner;
     result.repo = repo;
     result.repoName = `${owner}/${repo}`;
     result.ref = originalRef ?? ref;
-
-    // ── 11. Build response headers ───────────────────────────────────────────
+    
+    // Build response headers
     const headers = buildResponseHeaders({
       result,
       rateLimitRemaining,
@@ -204,43 +209,44 @@ export async function handleIngest(
       cacheStatus: "MISS",
       commitSha: resolvedSha,
     });
-
+    
     headers.set(
       "X-Token-Source",
       userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none"
     );
-
-    // ── 12. Emit structured log ──────────────────────────────────────────────
-    console.log(
-      JSON.stringify({
-        event: "ingest",
-        repo: `${owner}/${repo}`,
-        ref,
-        originalRef,
-        resolvedSha,
-        detail,
-        cacheHit: false,
-        fileCount: result.fileCount,
-        totalSize: result.totalSize,
-        truncated: result.truncated,
-        rateLimitRemaining,
-        latencyMs: Date.now() - startTime,
-        tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
-      })
-    );
-
-    // ── 13. Stream response for detail=full, otherwise return all at once ───
-    if (detail === "full") {
+    
+    // Log event
+    console.log(JSON.stringify({
+      event: "ingest",
+      repo: `${owner}/${repo}`,
+      ref,
+      originalRef,
+      resolvedSha,
+      detail: detail.join(","),
+      cacheHit: false,
+      fileCount: result.fileCount,
+      totalSize: result.totalSize,
+      truncated: result.truncated,
+      rateLimitRemaining,
+      latencyMs: Date.now() - startTime,
+      tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
+    }));
+    
+    // Build content based on detail levels
+    let content: string;
+    const isSingleFull = nonCommitsDetails.length === 1 && nonCommitsDetails[0] === "full" && !hasCommits;
+    
+    if (isSingleFull) {
+      // Keep streaming for single "full" detail level (backward compatibility)
       const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
       const writer = writable.getWriter();
       const encoder = new TextEncoder();
-
+      
       const summaryBlock = formatSummary(result);
       const treeBlock = formatTree(result.files);
       const header =
         summaryBlock + "\n## Directory Structure\n\n" + treeBlock + "\n## File Contents\n\n";
-
-      // Wrap streaming in try-catch to prevent unhandled promise rejections
+      
       ctx.waitUntil(
         (async () => {
           try {
@@ -250,7 +256,6 @@ export async function handleIngest(
                 await writer.write(encoder.encode(formatFileBlock(file)));
               } catch (writeErr) {
                 console.error("Error writing file block:", writeErr);
-                // Continue with other files
               }
             }
             if (result.truncated && result.truncationMessage) {
@@ -267,16 +272,15 @@ export async function handleIngest(
           }
         })()
       );
-
+      
       const response = new Response(readable, { headers });
-
-      // Cache a non-streaming clone: build the full string and cache it
+      
+      // Cache a non-streaming clone
       let fullContent: string;
       try {
         fullContent = formatOutput(result, "full");
       } catch (formatErr) {
         console.error("Error formatting output for cache:", formatErr);
-        // If formatting fails, still return the streaming response but skip caching
         return response;
       }
       
@@ -284,26 +288,32 @@ export async function handleIngest(
         status: 200,
         headers: new Headers(headers),
       });
-
-      // Only cache if SHA resolution succeeded
+      
       if (cachingEnabled && !noCache) {
         const cacheTtl = parseInt(env.CACHE_TTL_SECONDS ?? "86400", 10);
         putCache(cacheKey, cacheableResponse, cacheTtl, ctx);
       }
-
+      
       return response;
+    } else {
+      // Combined mode or single non-full detail level
+      if (hasCommits || nonCommitsDetails.length > 1) {
+        // Combined mode
+        content = formatCombinedOutput(result, nonCommitsDetails, commitsData);
+      } else {
+        // Single non-full detail level
+        content = formatOutput(result, nonCommitsDetails[0]);
+      }
     }
-
-    // Non-streaming path
-    const content = formatOutput(result, detail);
+    
     const response = new Response(content, { status: 200, headers });
-
-    // Only cache if SHA resolution succeeded
+    
+    // Cache if SHA resolution succeeded
     if (cachingEnabled && !noCache) {
       const cacheTtl = parseInt(env.CACHE_TTL_SECONDS ?? "86400", 10);
       putCache(cacheKey, response.clone(), cacheTtl, ctx);
     }
-
+    
     return response;
   } catch (err) {
     // Log error details for observability

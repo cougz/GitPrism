@@ -2,24 +2,33 @@ import { ParseError, type DetailLevel, type ParsedRequest } from "../types";
 
 const VALID_DETAIL_LEVELS = new Set<string>(["summary", "structure", "file-list", "full", "commits"]);
 
-function parseDetail(raw: string | null, searchParams?: URLSearchParams): DetailLevel {
-  // Explicit ?detail=<level> takes priority
+function parseDetail(raw: string | null, searchParams?: URLSearchParams): DetailLevel[] {
+  // Explicit ?detail=<level> or ?detail=<level1>,<level2> takes priority
   if (raw) {
-    if (!VALID_DETAIL_LEVELS.has(raw)) {
-      throw new ParseError(
-        `Invalid detail level "${raw}". Must be one of: summary, structure, file-list, full, commits.`
-      );
+    const levels = raw.split(",").map(l => l.trim());
+    for (const level of levels) {
+      if (!VALID_DETAIL_LEVELS.has(level)) {
+        throw new ParseError(
+          `Invalid detail level "${level}". Must be one of: summary, structure, file-list, full, commits.`
+        );
+      }
     }
-    return raw as DetailLevel;
+    return levels as DetailLevel[];
   }
-  // Abbreviated bare-key shorthand: ?summary, ?structure, ?file-list, ?full, ?commits
-  // e.g. /https://github.com/owner/repo?summary
+  
+  // Abbreviated bare-key shorthand: ?summary, ?structure, etc.
+  // Can combine: ?summary&structure&commits
   if (searchParams) {
+    const levels: DetailLevel[] = [];
     for (const level of ["summary", "structure", "file-list", "full", "commits"] as const) {
-      if (searchParams.has(level)) return level;
+      if (searchParams.has(level)) {
+        levels.push(level);
+      }
     }
+    if (levels.length > 0) return levels;
   }
-  return "full";
+  
+  return ["full"];
 }
 
 function parseOwnerRepo(raw: string): { owner: string; repo: string } {
