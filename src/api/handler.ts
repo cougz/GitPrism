@@ -122,6 +122,12 @@ export async function handleIngest(
 
   try {
     console.log("[INGEST] Starting processing, detail level:", detail);
+    
+    if (!resolvedRef) {
+      console.error("[INGEST] resolvedRef is undefined");
+      return jsonError(500, "Failed to resolve repository ref");
+    }
+    
     // ── 7. Special handling for commits detail level ─────────────────────────────
     if (detail === "commits") {
       console.log("[INGEST] Handling commits detail level");
