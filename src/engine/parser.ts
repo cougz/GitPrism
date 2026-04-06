@@ -1,21 +1,21 @@
 import { ParseError, type DetailLevel, type ParsedRequest } from "../types";
 
-const VALID_DETAIL_LEVELS = new Set<string>(["summary", "structure", "file-list", "full"]);
+const VALID_DETAIL_LEVELS = new Set<string>(["summary", "structure", "file-list", "full", "commits"]);
 
 function parseDetail(raw: string | null, searchParams?: URLSearchParams): DetailLevel {
   // Explicit ?detail=<level> takes priority
   if (raw) {
     if (!VALID_DETAIL_LEVELS.has(raw)) {
       throw new ParseError(
-        `Invalid detail level "${raw}". Must be one of: summary, structure, file-list, full.`
+        `Invalid detail level "${raw}". Must be one of: summary, structure, file-list, full, commits.`
       );
     }
     return raw as DetailLevel;
   }
-  // Abbreviated bare-key shorthand: ?summary, ?structure, ?file-list, ?full
+  // Abbreviated bare-key shorthand: ?summary, ?structure, ?file-list, ?full, ?commits
   // e.g. /https://github.com/owner/repo?summary
   if (searchParams) {
-    for (const level of ["summary", "structure", "file-list", "full"] as const) {
+    for (const level of ["summary", "structure", "file-list", "full", "commits"] as const) {
       if (searchParams.has(level)) return level;
     }
   }

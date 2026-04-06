@@ -241,7 +241,8 @@ export async function fetchCommits(
         date: string;
       };
       message: string;
-    } | files?: Array<unknown>;
+    };
+    files?: Array<unknown>;
   }>;
 
   return commits.map((commit) => ({
