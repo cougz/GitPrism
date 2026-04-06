@@ -8,24 +8,34 @@ GET https://gitprism.cloudemo.org/ingest?repo={owner/repo}&ref={branch}&path={su
 - repo (required): GitHub owner/repo, e.g. "cloudflare/workers-sdk"
 - ref (optional): Branch, tag, or commit SHA. Defaults to the repo's default branch.
 - path (optional): Subdirectory to scope results to, e.g. "src/components"
-- detail (optional): One of: summary, structure, file-list, full, commits. Defaults to full.
+- detail (optional): One or more of: summary, structure, file-list, file-contents, commits, full. Defaults to summary.
 
 ## Detail Levels
-- summary: Repo name, ref, file count, total size
-- structure: Summary + ASCII directory tree
-- file-list: Structure + file paths with sizes and line counts
-- full: Summary + structure + complete file contents in fenced code blocks (streamed)
-- commits: Last 10 commit messages with SHA, author, date, message, and files changed
+Each detail level includes a clear Markdown headline for readability when combined:
+- summary: Repo metadata (name, ref, file count, total size)
+- structure: ASCII directory tree
+- file-list: Table with file paths, sizes, and line counts
+- file-contents: Complete file contents in fenced code blocks (streamed for single selection)
+- commits: Last 10 commit messages with SHA, author, date, and message
+- full: All of the above combined (equivalent to selecting all detail levels)
+
+## Combining Detail Levels
+Multiple detail levels can be combined with commas:
+- ?detail=summary,structure
+- ?detail=file-list,commits
+- ?detail=structure,file-contents,commits
+
+Each section is clearly marked with a Markdown headline (## Summary, ## Directory Structure, etc.)
 
 ## Detail Level Shorthand
 All three access modes support bare-key detail shortcuts instead of ?detail=<level>:
 GET /ingest?repo=owner/repo&summary
 GET /https://github.com/owner/repo?summary
-Supported keys: ?summary, ?structure, ?file-list, ?full, ?commits
+Supported keys: ?summary, ?structure, ?file-list, ?file-contents, ?commits, ?full
 
 ## URL Proxy Shorthand
 GET https://gitprism.cloudemo.org/https://github.com/{owner}/{repo}/tree/{ref}/{path}
-Append ?summary, ?structure, ?file-list, ?full, or ?commits to control output detail.
+Append ?summary, ?structure, ?file-list, ?file-contents, ?commits, or ?full to control output detail.
 
 ## Authentication (Optional)
 Provide a GitHub personal access token to bypass shared rate limits and use your personal GitHub quota (5,000 req/hr instead of 30 req/min):
@@ -38,7 +48,7 @@ Provide a GitHub personal access token to bypass shared rate limits and use your
 Connect to: https://gitprism.cloudemo.org/mcp
 Tool: ingest_repo(url, detail, github_token?)
 - url: GitHub URL or owner/repo shorthand
-- detail: summary, structure, file-list, or full
+- detail: summary, structure, file-list, file-contents, or full
 - github_token (optional): Your GitHub PAT to bypass rate limits
 
 ## Limits
