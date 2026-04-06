@@ -129,7 +129,7 @@ export async function handleIngest(
     }
     
     const ref = resolvedRef;
-    const hasCommits = detail.includes("commits");
+    const hasCommits = detail.includes("commits") || detail.includes("full");
     const nonCommitsDetails = detail.filter(d => d !== "commits");
     const hasNonCommitsDetails = nonCommitsDetails.length > 0;
     
