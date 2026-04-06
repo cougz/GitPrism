@@ -527,11 +527,11 @@ import Layout from '../layouts/Layout.astro';
     <div class="options-row">
       <span class="options-label">Detail:</span>
      <div class="pills" id="detail-pills">
-       <label class="pill"><input type="radio" name="detail" value="summary" /> Summary</label>
-       <label class="pill"><input type="radio" name="detail" value="structure" /> Structure</label>
-       <label class="pill"><input type="radio" name="detail" value="file-list" /> File List</label>
-       <label class="pill active"><input type="radio" name="detail" value="full" checked /> Full</label>
-       <label class="pill"><input type="radio" name="detail" value="commits" /> Commits</label>
+       <label class="pill"><input type="checkbox" name="detail" value="summary" /> Summary</label>
+       <label class="pill"><input type="checkbox" name="detail" value="structure" /> Structure</label>
+       <label class="pill"><input type="checkbox" name="detail" value="file-list" /> File List</label>
+       <label class="pill active"><input type="checkbox" name="detail" value="full" checked /> Full</label>
+       <label class="pill"><input type="checkbox" name="detail" value="commits" /> Commits</label>
      </div>
       </div>
      </section>
@@ -636,32 +636,40 @@ import Layout from '../layouts/Layout.astro';
 
     // ── Detail pills ──────────────────────────────────────────────────────────
     document.querySelectorAll('.pill').forEach(pill => {
-      pill.addEventListener('click', () => {
-        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
-        pill.classList.add('active');
+      pill.addEventListener('click', (e) => {
+        const checkbox = pill.querySelector('input[type="checkbox"]') as HTMLInputElement;
+        if (checkbox && e.target !== checkbox) {
+          // Toggle checkbox if pill was clicked (not the checkbox itself)
+          checkbox.checked = !checkbox.checked;
+        }
+        // Update active class based on checkbox state
+        if (checkbox) {
+          pill.classList.toggle('active', checkbox.checked);
+        }
       });
     });
 
-    function getSelectedDetail(): string {
-      const checked = document.querySelector<HTMLInputElement>('.pill input[type="radio"]:checked');
-      return checked?.value ?? 'full';
+    function getSelectedDetail(): string[] {
+      const checked = document.querySelectorAll<HTMLInputElement>('.pill input[type="checkbox"]:checked');
+      const values = Array.from(checked).map(el => el.value);
+      return values.length > 0 ? values : ['full'];
     }
 
     // ── Build API URL ─────────────────────────────────────────────────────────
-    function buildApiUrl(repoInput: string, detail: string): string {
+    function buildApiUrl(repoInput: string, details: string[]): string {
       const raw = repoInput.trim();
 
       // Full GitHub URL — use URL-proxy shorthand so ref/subpath are preserved
       if (raw.startsWith('https://github.com/') || raw.startsWith('http://github.com/')) {
         const params = new URLSearchParams();
-        params.set('detail', detail);
+        params.set('detail', details.join(','));
         return `/${raw}?${params.toString()}`;
       }
 
       // owner/repo shorthand or any other form — use canonical /ingest
       const params = new URLSearchParams();
       params.set('repo', raw);
-      params.set('detail', detail);
+      params.set('detail', details.join(','));
       return `/ingest?${params.toString()}`;
     }
 
