@@ -193,7 +193,6 @@ export interface CommitInfo {
   author: string;
   date: string;
   message: string;
-  filesChanged: number;
 }
 
 export async function fetchCommits(
@@ -250,6 +249,5 @@ export async function fetchCommits(
     author: commit.commit.author.name,
     date: new Date(commit.commit.author.date).toISOString().split("T")[0],
     message: commit.commit.message.split("\n")[0],
-    filesChanged: commit.files?.length ?? 0,
   }));
 }

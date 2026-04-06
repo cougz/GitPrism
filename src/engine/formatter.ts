@@ -245,15 +245,12 @@ export function formatCommits(
     "",
     "## Recent Commits",
     "",
-    "| SHA | Author | Date | Message | Files |",
-    "|-----|--------|------|---------|-------|",
+    "| SHA | Author | Date | Message |",
+    "|-----|--------|------|---------|",
   ];
 
   for (const commit of commits) {
-    const message = commit.message.length > 60 
-      ? commit.message.substring(0, 57) + "..."
-      : commit.message;
-    lines.push(`| \`${commit.sha}\` | ${commit.author} | ${commit.date} | ${message} | ${commit.filesChanged} |`);
+    lines.push(`| \`${commit.sha}\` | ${commit.author} | ${commit.date} | ${commit.message} |`);
   }
 
   lines.push("");
