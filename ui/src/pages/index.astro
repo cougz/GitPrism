@@ -533,7 +533,27 @@ import Layout from '../layouts/Layout.astro';
        <label class="pill active"><input type="radio" name="detail" value="full" checked /> Full</label>
        <label class="pill"><input type="radio" name="detail" value="commits" /> Commits</label>
      </div>
-     </div>
+      </div>
+     </section>
+
+    <!-- Error banner -->
+    <div class="error-banner" id="error-banner"></div>
+
+    <!-- Result -->
+    <section class="result-section" id="result-section">
+      <div class="result-header">
+        <div>
+          <div class="result-title" id="result-title">Output</div>
+          <div class="result-meta" id="result-meta"></div>
+        </div>
+        <div class="result-actions">
+          <button class="btn-sm" id="copy-btn">Copy</button>
+          <button class="btn-sm" id="download-btn">Download .md</button>
+        </div>
+      </div>
+      <div class="result-viewer">
+        <pre id="result-content"></pre>
+      </div>
     </section>
 
     <!-- Footer -->
