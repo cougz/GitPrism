@@ -109,14 +109,13 @@ export async function handleIngest(
   try {
     // ── 7. Special handling for commits detail level ─────────────────────────────
     if (detail === "commits") {
-      const commits = await fetchCommits(owner, repo, ref, env, userToken, parsed.path);
-      const content = formatCommits(owner, repo, ref, commits);
+      const commits = await fetchCommits(owner, repo, resolvedRef, env, userToken, parsed.path);
+      const content = formatCommits(owner, repo, resolvedRef, commits);
 
-      
       const headers = new Headers({
         "Content-Type": "text/markdown; charset=utf-8",
         "X-Repo": `${owner}/${repo}`,
-        "X-Ref": ref,
+        "X-Ref": resolvedRef,
         "X-Commit-Sha": resolvedSha ?? "",
         "X-Cache": "MISS",
         "X-Token-Source": userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
@@ -126,18 +125,18 @@ export async function handleIngest(
         JSON.stringify({
           event: "ingest",
           repo: `${owner}/${repo}`,
-          ref,
+          ref: resolvedRef,
           detail: "commits",
           commitCount: commits.length,
           tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
-          latencyMs: Date.now() - startTime
+          latencyMs: Date.now() - startTime,
         })
       );
 
       return new Response(content, { status: 200, headers });
     }
 
-    // ── 8. Pre-flight size check ────────────────────────────────────────────
+    // ── 8. Use resolvedRef for all operations ────────────────────────────────────
     const ref = resolvedRef;
 
     // ── 8. Pre-flight size check ────────────────────────────────────────────

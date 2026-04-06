@@ -272,7 +272,5 @@ export function formatOutput(result: IngestResult, detail: DetailLevel): string 
       return formatFileList(result);
     case "full":
       return formatFull(result);
-    case "commits":
-      return formatCommits(result.owner, result.repo, result.ref, result.files);
   }
 }
