@@ -105,6 +105,18 @@ export function formatSummary(result: IngestResult): string {
   return lines.join("\n");
 }
 
+function formatSummarySection(result: IngestResult): string {
+  const lines = [
+    `# ${result.repoName}`,
+    "",
+    `**Ref:** \`${result.ref}\`  `,
+    `**Files:** ${result.fileCount}  `,
+    `**Total size:** ${formatBytes(result.totalSize)}  `,
+    "",
+  ];
+  return lines.join("\n");
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -282,18 +294,21 @@ export function formatCombinedOutput(
 ): string {
   const parts: string[] = [];
   
-  // Always start with summary once
-  parts.push(formatSummary(result));
-  
   // Check which detail levels are selected
   const hasFull = details.includes("full");
+  const hasSummary = details.includes("summary") || hasFull;
   const hasStructure = details.includes("structure") || hasFull;
   const hasFileList = details.includes("file-list") || hasFull;
   const hasFileContents = details.includes("file-contents") || hasFull;
   const hasCommitsDetail = details.includes("commits") || hasFull;
   
-  // Include directory structure if any of these are selected
-  if (hasStructure || hasFileList || hasFileContents) {
+  // Include summary if selected
+  if (hasSummary) {
+    parts.push("## Summary\n\n" + formatSummarySection(result));
+  }
+  
+  // Include directory structure if selected
+  if (hasStructure) {
     parts.push("## Directory Structure\n\n" + formatTree(result.files));
   }
   
