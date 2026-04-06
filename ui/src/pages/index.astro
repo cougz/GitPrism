@@ -177,8 +177,8 @@ import Layout from '../layouts/Layout.astro';
     .pill {
       display: flex;
       align-items: center;
-      gap: 4px;
-      padding: 5px 12px;
+      gap: 6px;
+      padding: 6px 12px;
       border-radius: 20px;
       border: 1px solid var(--border-color);
       background: var(--bg-secondary);
@@ -191,14 +191,57 @@ import Layout from '../layouts/Layout.astro';
     }
     .pill:hover {
       border-color: var(--cf-orange);
-      color: var(--cf-orange);
+      color: var(--text-primary);
     }
     .pill.active {
       border-color: var(--cf-orange);
       background: rgba(244, 128, 36, 0.1);
       color: var(--cf-orange);
     }
-    .pill input[type="radio"] { display: none; }
+    
+    /* Hide default checkbox */
+    .pill input[type="checkbox"] {
+      display: none;
+    }
+    
+    /* Custom checkbox */
+    .custom-checkbox {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--text-muted);
+      border-radius: 3px;
+      position: relative;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+    
+    .pill:hover .custom-checkbox {
+      border-color: var(--cf-orange);
+    }
+    
+    /* Checkmark icon */
+    .custom-checkbox svg {
+      width: 10px;
+      height: 10px;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all var(--transition-fast);
+      color: white;
+    }
+    
+    /* Show checkmark when checked */
+    .pill input[type="checkbox"]:checked ~ .custom-checkbox {
+      background: var(--cf-orange);
+      border-color: var(--cf-orange);
+    }
+    
+    .pill input[type="checkbox"]:checked ~ .custom-checkbox svg {
+      opacity: 1;
+      transform: scale(1);
+    }
 
     /* ── Error banner ── */
     .error-banner {
@@ -527,11 +570,51 @@ import Layout from '../layouts/Layout.astro';
     <div class="options-row">
       <span class="options-label">Detail:</span>
      <div class="pills" id="detail-pills">
-       <label class="pill"><input type="checkbox" name="detail" value="summary" /> Summary</label>
-       <label class="pill"><input type="checkbox" name="detail" value="structure" /> Structure</label>
-       <label class="pill"><input type="checkbox" name="detail" value="file-list" /> File List</label>
-       <label class="pill active"><input type="checkbox" name="detail" value="full" checked /> Full</label>
-       <label class="pill"><input type="checkbox" name="detail" value="commits" /> Commits</label>
+       <label class="pill">
+         <input type="checkbox" name="detail" value="summary" />
+         <span class="custom-checkbox">
+           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="2,6 5,9 10,3"></polyline>
+           </svg>
+         </span>
+         Summary
+       </label>
+       <label class="pill">
+         <input type="checkbox" name="detail" value="structure" />
+         <span class="custom-checkbox">
+           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="2,6 5,9 10,3"></polyline>
+           </svg>
+         </span>
+         Structure
+       </label>
+       <label class="pill">
+         <input type="checkbox" name="detail" value="file-list" />
+         <span class="custom-checkbox">
+           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="2,6 5,9 10,3"></polyline>
+           </svg>
+         </span>
+         File List
+       </label>
+       <label class="pill active">
+         <input type="checkbox" name="detail" value="full" checked />
+         <span class="custom-checkbox">
+           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="2,6 5,9 10,3"></polyline>
+           </svg>
+         </span>
+         Full
+       </label>
+       <label class="pill">
+         <input type="checkbox" name="detail" value="commits" />
+         <span class="custom-checkbox">
+           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             <polyline points="2,6 5,9 10,3"></polyline>
+           </svg>
+         </span>
+         Commits
+       </label>
      </div>
       </div>
      </section>
