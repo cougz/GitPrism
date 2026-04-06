@@ -570,8 +570,8 @@ import Layout from '../layouts/Layout.astro';
     <div class="options-row">
       <span class="options-label">Detail:</span>
       <div class="pills" id="detail-pills">
-        <label class="pill">
-          <input type="checkbox" name="detail" value="summary" />
+        <label class="pill active">
+          <input type="checkbox" name="detail" value="summary" checked />
           <span class="custom-checkbox">
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="2,6 5,9 10,3"></polyline>
@@ -597,8 +597,8 @@ import Layout from '../layouts/Layout.astro';
           </span>
           File List
         </label>
-        <label class="pill active">
-          <input type="checkbox" name="detail" value="file-contents" checked />
+        <label class="pill">
+          <input type="checkbox" name="detail" value="file-contents" />
           <span class="custom-checkbox">
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <polyline points="2,6 5,9 10,3"></polyline>
@@ -765,7 +765,7 @@ import Layout from '../layouts/Layout.astro';
     function getSelectedDetail(): string[] {
       const checked = document.querySelectorAll<HTMLInputElement>('.pill input[type="checkbox"]:checked');
       const values = Array.from(checked).map(el => el.value);
-      return values.length > 0 ? values : ['file-contents'];
+      return values.length > 0 ? values : ['summary'];
     }
 
     // ── Build API URL ─────────────────────────────────────────────────────────
