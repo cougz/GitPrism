@@ -569,55 +569,63 @@ import Layout from '../layouts/Layout.astro';
     <!-- Detail level options -->
     <div class="options-row">
       <span class="options-label">Detail:</span>
-     <div class="pills" id="detail-pills">
-       <label class="pill">
-         <input type="checkbox" name="detail" value="summary" />
-         <span class="custom-checkbox">
-           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-             <polyline points="2,6 5,9 10,3"></polyline>
-           </svg>
-         </span>
-         Summary
-       </label>
-       <label class="pill">
-         <input type="checkbox" name="detail" value="structure" />
-         <span class="custom-checkbox">
-           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-             <polyline points="2,6 5,9 10,3"></polyline>
-           </svg>
-         </span>
-         Structure
-       </label>
-       <label class="pill">
-         <input type="checkbox" name="detail" value="file-list" />
-         <span class="custom-checkbox">
-           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-             <polyline points="2,6 5,9 10,3"></polyline>
-           </svg>
-         </span>
-         File List
-       </label>
-       <label class="pill active">
-         <input type="checkbox" name="detail" value="full" checked />
-         <span class="custom-checkbox">
-           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-             <polyline points="2,6 5,9 10,3"></polyline>
-           </svg>
-         </span>
-         Full
-       </label>
-       <label class="pill">
-         <input type="checkbox" name="detail" value="commits" />
-         <span class="custom-checkbox">
-           <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-             <polyline points="2,6 5,9 10,3"></polyline>
-           </svg>
-         </span>
-         Commits
-       </label>
-     </div>
+      <div class="pills" id="detail-pills">
+        <label class="pill">
+          <input type="checkbox" name="detail" value="summary" />
+          <span class="custom-checkbox">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="2,6 5,9 10,3"></polyline>
+            </svg>
+          </span>
+          Summary
+        </label>
+        <label class="pill">
+          <input type="checkbox" name="detail" value="structure" />
+          <span class="custom-checkbox">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="2,6 5,9 10,3"></polyline>
+            </svg>
+          </span>
+          Structure
+        </label>
+        <label class="pill">
+          <input type="checkbox" name="detail" value="file-list" />
+          <span class="custom-checkbox">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="2,6 5,9 10,3"></polyline>
+            </svg>
+          </span>
+          File List
+        </label>
+        <label class="pill active">
+          <input type="checkbox" name="detail" value="file-contents" checked />
+          <span class="custom-checkbox">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="2,6 5,9 10,3"></polyline>
+            </svg>
+          </span>
+          File Contents
+        </label>
+        <label class="pill">
+          <input type="checkbox" name="detail" value="commits" />
+          <span class="custom-checkbox">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="2,6 5,9 10,3"></polyline>
+            </svg>
+          </span>
+          Commits
+        </label>
+        <label class="pill">
+          <input type="checkbox" name="detail" value="full" />
+          <span class="custom-checkbox">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="2,6 5,9 10,3"></polyline>
+            </svg>
+          </span>
+          Full
+        </label>
       </div>
-     </section>
+    </div>
 
     <!-- Error banner -->
     <div class="error-banner" id="error-banner"></div>
@@ -718,12 +726,38 @@ import Layout from '../layouts/Layout.astro';
     });
 
     // ── Detail pills ──────────────────────────────────────────────────────────
-    document.querySelectorAll<HTMLInputElement>('.pill input[type="checkbox"]').forEach(checkbox => {
+    const allCheckboxes = document.querySelectorAll<HTMLInputElement>('.pill input[type="checkbox"]');
+    const fullCheckbox = document.querySelector<HTMLInputElement>('.pill input[value="full"]');
+    const otherCheckboxes = Array.from(allCheckboxes).filter(cb => cb.value !== 'full');
+    
+    allCheckboxes.forEach(checkbox => {
       const pill = checkbox.closest('.pill') as HTMLElement;
       if (pill) {
         pill.classList.toggle('active', checkbox.checked);
-        checkbox.addEventListener('change', () => {
+        checkbox.addEventListener('change', (e) => {
+          e.stopPropagation();
           pill.classList.toggle('active', checkbox.checked);
+          
+          // If "Full" is checked/unchecked, toggle all others
+          if (checkbox.value === 'full') {
+            otherCheckboxes.forEach(otherCb => {
+              otherCb.checked = checkbox.checked;
+              const otherPill = otherCb.closest('.pill') as HTMLElement;
+              if (otherPill) {
+                otherPill.classList.toggle('active', checkbox.checked);
+              }
+            });
+          }
+          
+          // If any other checkbox is toggled, uncheck "Full" if not all are checked
+          if (checkbox.value !== 'full' && fullCheckbox) {
+            const allOthersChecked = otherCheckboxes.every(cb => cb.checked);
+            fullCheckbox.checked = allOthersChecked;
+            const fullPill = fullCheckbox.closest('.pill') as HTMLElement;
+            if (fullPill) {
+              fullPill.classList.toggle('active', allOthersChecked);
+            }
+          }
         });
       }
     });
@@ -731,7 +765,7 @@ import Layout from '../layouts/Layout.astro';
     function getSelectedDetail(): string[] {
       const checked = document.querySelectorAll<HTMLInputElement>('.pill input[type="checkbox"]:checked');
       const values = Array.from(checked).map(el => el.value);
-      return values.length > 0 ? values : ['full'];
+      return values.length > 0 ? values : ['file-contents'];
     }
 
     // ── Build API URL ─────────────────────────────────────────────────────────

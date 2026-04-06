@@ -8,7 +8,7 @@ export interface Env {
   CACHE_TTL_SECONDS: string;
 }
 
-export type DetailLevel = "summary" | "structure" | "file-list" | "full" | "commits";
+export type DetailLevel = "summary" | "structure" | "file-list" | "file-contents" | "commits" | "full";
 
 export interface ParsedRequest {
   owner: string;

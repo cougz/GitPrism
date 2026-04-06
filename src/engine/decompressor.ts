@@ -106,7 +106,9 @@ export function decompressAndProcess(
 
     const fileSize = data.length;
 
-    if (detail === "full" && totalSize + fileSize > maxOutputBytes) {
+    const needsContent = detail === "full" || detail === "file-contents";
+    
+    if (needsContent && totalSize + fileSize > maxOutputBytes) {
       truncated = true;
       break;
     }
@@ -117,12 +119,12 @@ export function decompressAndProcess(
       size: fileSize,
     };
 
-    if (detail === "full" || detail === "file-list") {
+    if (needsContent || detail === "file-list") {
       // Count lines
       const text = new TextDecoder().decode(data);
       entry.lines = text.split("\n").length;
 
-      if (detail === "full") {
+      if (needsContent) {
         entry.content = text;
       }
     }

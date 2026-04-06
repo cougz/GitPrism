@@ -1,6 +1,6 @@
 import { ParseError, type DetailLevel, type ParsedRequest } from "../types";
 
-const VALID_DETAIL_LEVELS = new Set<string>(["summary", "structure", "file-list", "full", "commits"]);
+const VALID_DETAIL_LEVELS = new Set<string>(["summary", "structure", "file-list", "file-contents", "commits", "full"]);
 
 function parseDetail(raw: string | null, searchParams?: URLSearchParams): DetailLevel[] {
   // Explicit ?detail=<level> or ?detail=<level1>,<level2> takes priority

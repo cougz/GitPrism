@@ -186,8 +186,8 @@ export async function handleIngest(
     const maxOutputBytes = parseInt(env.MAX_OUTPUT_BYTES ?? "10485760", 10);
     const maxFileCount = parseInt(env.MAX_FILE_COUNT ?? "5000", 10);
     
-    // For combined mode, use "full" detail level for processing to get all file data
-    const processingDetail = nonCommitsDetails.length === 1 ? nonCommitsDetails[0] : "full";
+    // For combined mode, use "file-contents" detail level for processing to get all file data
+    const processingDetail = nonCommitsDetails.length === 1 ? nonCommitsDetails[0] : "file-contents";
     const result = decompressAndProcess(zipData, {
       subpath: parsed.path,
       detail: processingDetail,
@@ -234,10 +234,10 @@ export async function handleIngest(
     
     // Build content based on detail levels
     let content: string;
-    const isSingleFull = nonCommitsDetails.length === 1 && nonCommitsDetails[0] === "full" && !hasCommits;
+    const isSingleFileContents = nonCommitsDetails.length === 1 && nonCommitsDetails[0] === "file-contents" && !hasCommits;
     
-    if (isSingleFull) {
-      // Keep streaming for single "full" detail level (backward compatibility)
+    if (isSingleFileContents) {
+      // Keep streaming for single "file-contents" detail level (backward compatibility)
       const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
       const writer = writable.getWriter();
       const encoder = new TextEncoder();
@@ -278,7 +278,7 @@ export async function handleIngest(
       // Cache a non-streaming clone
       let fullContent: string;
       try {
-        fullContent = formatOutput(result, "full");
+        fullContent = formatOutput(result, "file-contents");
       } catch (formatErr) {
         console.error("Error formatting output for cache:", formatErr);
         return response;

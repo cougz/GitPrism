@@ -267,8 +267,11 @@ export function formatOutput(result: IngestResult, detail: DetailLevel): string 
       return formatSummary(result) + "\n## Directory Structure\n\n" + formatTree(result.files);
     case "file-list":
       return formatFileList(result);
-    case "full":
+    case "file-contents":
       return formatFull(result);
+    case "commits":
+    case "full":
+      return "";
   }
 }
 
@@ -283,13 +286,14 @@ export function formatCombinedOutput(
   parts.push(formatSummary(result));
   
   // Check which detail levels are selected
-  const hasStructure = details.includes("structure");
-  const hasFileList = details.includes("file-list");
   const hasFull = details.includes("full");
-  const hasCommitsDetail = details.includes("commits");
+  const hasStructure = details.includes("structure") || hasFull;
+  const hasFileList = details.includes("file-list") || hasFull;
+  const hasFileContents = details.includes("file-contents") || hasFull;
+  const hasCommitsDetail = details.includes("commits") || hasFull;
   
   // Include directory structure if any of these are selected
-  if (hasStructure || hasFileList || hasFull) {
+  if (hasStructure || hasFileList || hasFileContents) {
     parts.push("## Directory Structure\n\n" + formatTree(result.files));
   }
   
@@ -312,7 +316,7 @@ export function formatCombinedOutput(
   }
   
   // Include full file contents if selected
-  if (hasFull) {
+  if (hasFileContents) {
     let content = "## File Contents\n\n";
     for (const file of result.files) {
       content += formatFileBlock(file);
