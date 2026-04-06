@@ -33,11 +33,50 @@ A fast, token-efficient, stateless pipeline that converts public GitHub reposito
                           (authenticated via secret)
 ```
 
+## Authentication
+
+GitPrism supports optional GitHub personal access tokens to bypass shared rate limits and use your personal GitHub API quota.
+
+### Default Rate Limits
+- **Without authentication:** 30 requests per minute per IP address
+- **With server token:** Shared across all users (5,000 req/hr for the Worker's IP)
+- **With user token:** Your personal GitHub quota (5,000 requests per hour)
+
+### Using Your Own Token
+
+**REST API:**
+```bash
+curl -H "X-GitHub-Token: ghp_xxxx" https://gitprism.cloudemo.org/ingest?repo=owner/repo
+```
+
+**Web UI:**
+Click the ⚙️ settings icon in the search bar to open the token settings panel. Your token is stored in `localStorage` and never sent to any server other than GitHub via this Worker.
+
+**MCP Tool:**
+```json
+{
+  "url": "https://github.com/owner/repo",
+  "detail": "full",
+  "github_token": "ghp_xxxx"
+}
+```
+
+### Token Requirements
+- **Scope:** Contents: Read-only
+- **Repository access:** Public repositories only
+- **Create token:** https://github.com/settings/tokens?type=beta
+
+### Response Headers
+The `X-Token-Source` header indicates which token was used:
+- `user` — Your personal token (via `X-GitHub-Token` header)
+- `server` — The Worker's shared token
+- `none` — No token available
+
 ## Usage
 
 ### Web UI
 
-Visit `https://gitprism.cloudemo.org/` and paste any GitHub URL.
+Visit `https://gitprism.cloudemo.org/` and paste any GitHub URL. Use the settings panel (⚙️) to configure your GitHub token.
 
 ### REST API
 
@@ -104,7 +143,7 @@ GET /https://github.com/owner/repo/tree/main/src?file-list
 | 400 | Malformed input |
 | 404 | Repository not found or private |
 | 413 | Archive exceeds 50 MB limit |
-| 429 | Rate limited (30 req/min per IP) |
+| 429 | Rate limited (30 req/min per IP, bypassed with `X-GitHub-Token`) |
 | 502 | GitHub API error |
 
 ### MCP Tool
@@ -117,11 +156,13 @@ Available tool: **`ingest_repo`**
 |---|---|---|---|
 | `url` | Yes | — | GitHub URL or `owner/repo` shorthand |
 | `detail` | No | `full` | `summary`, `structure`, `file-list`, or `full` |
+| `github_token` | No | — | Your GitHub PAT to bypass rate limits |
 
 ```json
 {
   "url": "https://github.com/owner/repo",
-  "detail": "summary"
+  "detail": "summary",
+  "github_token": "ghp_xxxx"
 }
 ```
 
@@ -299,8 +340,15 @@ The `ingest_repo` MCP tool is compatible with Code Mode agents by design:
 | Max zip archive size | 50 MB | `MAX_ZIP_BYTES` env var |
 | Max output size | 10 MB | `MAX_OUTPUT_BYTES` env var |
 | Max file count | 5,000 | `MAX_FILE_COUNT` env var |
-| Rate limit | 30 req/min per IP | `wrangler.jsonc` ratelimits binding |
+| Rate limit (no token) | 30 req/min per IP | `wrangler.jsonc` ratelimits binding |
+| Rate limit (user token) | 5,000 req/hr | GitHub's per-user quota |
 | Cache TTL | 24 hours | `CACHE_TTL_SECONDS` env var |
+
+**Rate limit behavior:**
+
+- **Without `X-GitHub-Token`:** Cloudflare rate limiter enforces 30 requests per minute per IP
+- **With `X-GitHub-Token`:** Cloudflare rate limiter is bypassed; your personal GitHub quota applies (5,000 req/hr)
+- The `X-Token-Source` response header indicates which token was used (`user`, `server`, or `none`)
 
 **Caching behavior:**
 
