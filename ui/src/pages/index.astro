@@ -718,14 +718,14 @@ import Layout from '../layouts/Layout.astro';
     });
 
     // ── Detail pills ──────────────────────────────────────────────────────────
-    document.querySelectorAll('.pill').forEach(pill => {
-      pill.addEventListener('click', (e) => {
-        const checkbox = pill.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        if (checkbox) {
-          checkbox.checked = !checkbox.checked;
+    document.querySelectorAll<HTMLInputElement>('.pill input[type="checkbox"]').forEach(checkbox => {
+      const pill = checkbox.closest('.pill') as HTMLElement;
+      if (pill) {
+        pill.classList.toggle('active', checkbox.checked);
+        checkbox.addEventListener('change', () => {
           pill.classList.toggle('active', checkbox.checked);
-        }
-      });
+        });
+      }
     });
 
     function getSelectedDetail(): string[] {
