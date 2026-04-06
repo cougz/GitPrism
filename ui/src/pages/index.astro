@@ -681,39 +681,62 @@ import Layout from '../layouts/Layout.astro';
       hideError();
 
       const raw = input.value.trim();
+      console.log('[UI] Form submitted, input:', raw);
       if (!raw) return;
 
       const detail  = getSelectedDetail();
       const apiUrl  = buildApiUrl(raw, detail);
+      console.log('[UI] API URL:', apiUrl);
+      console.log('[UI] Detail level:', detail);
 
       setLoading(true);
       resultSec.style.display  = 'none';
 
       const storedToken = getStoredToken();
       const fetchHeaders: Record<string, string> = {};
-      if (storedToken) fetchHeaders['X-GitHub-Token'] = storedToken;
+      if (storedToken) {
+        fetchHeaders['X-GitHub-Token'] = storedToken;
+        console.log('[UI] Using stored token');
+      }
 
       try {
+        console.log('[UI] Fetching from API...');
         const res = await fetch(apiUrl, { headers: fetchHeaders });
+        console.log('[UI] Response status:', res.status);
+        console.log('[UI] Response headers:', Object.fromEntries(res.headers.entries()));
 
         if (!res.ok) {
           let msg = `Request failed (HTTP ${res.status})`;
+          console.error('[UI] Request failed:', res.status);
           try {
             const body = await res.json() as { error?: string };
-            if (body.error) msg = body.error;
-          } catch { /* ignore parse error */ }
+            if (body.error) {
+              msg = body.error;
+              console.error('[UI] Error from API:', body.error);
+            }
+          } catch (parseErr) {
+            console.error('[UI] Failed to parse error response:', parseErr);
+            /* ignore parse error */
+          }
 
-          if (res.status === 413) msg = 'This repository is too large. Try adding /tree/branch/subdirectory to scope results.';
-          else if (res.status === 429) {
+          if (res.status === 413) {
+            msg = 'This repository is too large. Try adding /tree/branch/subdirectory to scope results.';
+            console.warn('[UI] 413 error - repo too large');
+          } else if (res.status === 429) {
             const ra = res.headers.get('Retry-After');
             msg = `Rate limit reached. Please try again${ra ? ` in ${ra} seconds` : ' later'}.`;
-          } else if (res.status === 404) msg = 'Repository not found. It may be private or the URL is misspelled.';
+            console.warn('[UI] 429 rate limited, retry after:', ra);
+          } else if (res.status === 404) {
+            msg = 'Repository not found. It may be private or the URL is misspelled.';
+            console.warn('[UI] 404 not found');
+          }
 
           showError(msg);
           return;
         }
 
         const text = await res.text();
+        console.log('[UI] Response OK, text length:', text.length);
         lastContent = text;
 
         // Derive a short label
@@ -758,10 +781,12 @@ import Layout from '../layouts/Layout.astro';
         resultSec.style.display = 'block';
         resultSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-      } catch {
+      } catch (err) {
+        console.error('[UI] Network error:', err);
         showError('Network error. Check your connection and try again.');
       } finally {
         setLoading(false);
+        console.log('[UI] Request complete');
       }
     });
 

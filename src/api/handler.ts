@@ -38,12 +38,16 @@ export async function handleIngest(
   ctx: ExecutionContext
 ): Promise<Response> {
   const startTime = Date.now();
+  
+  console.log("[INGEST] Request received:", request.url);
 
   // ── 1. Parse request ──────────────────────────────────────────────────────
   let parsed;
   try {
     parsed = parseRequest(request);
+    console.log("[INGEST] Parsed request:", { owner: parsed.owner, repo: parsed.repo, detail: parsed.detail, ref: parsed.ref });
   } catch (err) {
+    console.error("[INGEST] Parse error:", err);
     if (isParseError(err)) {
       return jsonError(400, (err as Error).message);
     }
@@ -57,11 +61,14 @@ export async function handleIngest(
   const { owner, repo, detail, noCache, ref: originalRef } = parsed;
 
   // ── 3. Rate limit — skip when user supplies their own token ───────────────
+  console.log("[INGEST] Checking rate limit, userToken:", !!userToken);
   if (!userToken) {
     const clientIP = getClientIP(request);
     const rateLimitResult = await checkRateLimit(env, clientIP);
+    console.log("[INGEST] Rate limit result:", rateLimitResult);
     if (!rateLimitResult.allowed) {
       const retryAfter = rateLimitResult.retryAfter ?? 60;
+      console.log("[INGEST] Rate limited, retry after:", retryAfter);
       return new Response(
         JSON.stringify({ error: "Rate limit exceeded", retryAfter }),
         {
@@ -76,16 +83,20 @@ export async function handleIngest(
   }
 
   // ── 4. Resolve ref to commit SHA ────────────────────────────────────────────
+  console.log("[INGEST] Resolving ref, originalRef:", originalRef);
   let resolvedRef: string | undefined;
   let resolvedSha: string | undefined;
 
   if (!originalRef) {
+    console.log("[INGEST] No ref provided, resolving default branch");
     resolvedRef = await resolveDefaultRef(owner, repo, env, userToken);
+    console.log("[INGEST] Default branch resolved:", resolvedRef);
     resolvedSha = await resolveRefToSha(owner, repo, resolvedRef, env, userToken);
   } else {
     resolvedRef = originalRef;
     resolvedSha = await resolveRefToSha(owner, repo, originalRef, env, userToken);
   }
+  console.log("[INGEST] Ref resolved:", { resolvedRef, resolvedSha });
 
   // ── 5. Build cache key with SHA (or ref if SHA resolution failed) ───────
   const cacheKey = buildCacheKey(parsed, resolvedSha);
@@ -93,23 +104,29 @@ export async function handleIngest(
   // ── 6. Check cache (skip if no-cache=true or SHA resolution failed) ─────────
   const cachingEnabled = resolvedSha !== undefined;
   const shouldCheckCache = cachingEnabled && !noCache;
+  console.log("[INGEST] Cache check:", { cachingEnabled, shouldCheckCache, noCache });
 
   if (shouldCheckCache) {
     const cached = await getCached(cacheKey);
+    console.log("[INGEST] Cache result:", cached ? "HIT" : "MISS");
     if (cached) {
       const cachedResponse = new Response(cached.body, {
         status: cached.status,
         headers: new Headers(cached.headers),
       });
       cachedResponse.headers.set("X-Cache", "HIT");
+      console.log("[INGEST] Returning cached response");
       return cachedResponse;
     }
   }
 
   try {
+    console.log("[INGEST] Starting processing, detail level:", detail);
     // ── 7. Special handling for commits detail level ─────────────────────────────
     if (detail === "commits") {
+      console.log("[INGEST] Handling commits detail level");
       const commits = await fetchCommits(owner, repo, resolvedRef, env, userToken, parsed.path);
+      console.log("[INGEST] Fetched commits:", commits.length);
       const content = formatCommits(owner, repo, resolvedRef, commits);
 
       const headers = new Headers({
@@ -138,11 +155,15 @@ export async function handleIngest(
 
     // ── 8. Use resolvedRef for all operations ────────────────────────────────────
     const ref = resolvedRef;
+    console.log("[INGEST] Processing detail level:", detail, "ref:", ref);
 
     // ── 8. Pre-flight size check ────────────────────────────────────────────
+    console.log("[INGEST] Checking zip size");
     await checkZipSize(owner, repo, ref, env, userToken);
+    console.log("[INGEST] Zip size check passed");
 
     // ── 9. Fetch zipball ────────────────────────────────────────────────────
+    console.log("[INGEST] Fetching zipball");
     const { data: zipData, rateLimitRemaining, rateLimitReset } = await fetchZipball(
       owner,
       repo,
@@ -150,6 +171,7 @@ export async function handleIngest(
       env,
       userToken
     );
+    console.log("[INGEST] Zipball fetched, size:", zipData.length);
 
     // ── 10. Decompress and process ───────────────────────────────────────────
     const maxOutputBytes = parseInt(env.MAX_OUTPUT_BYTES ?? "10485760", 10);
