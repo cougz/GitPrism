@@ -187,3 +187,68 @@ export async function fetchZipball(
     rateLimitReset: res.headers.get("X-RateLimit-Reset") ?? "",
   };
 }
+
+export interface CommitInfo {
+  sha: string;
+  author: string;
+  date: string;
+  message: string;
+  filesChanged: number;
+}
+
+export async function fetchCommits(
+  owner: string,
+  repo: string,
+  ref: string,
+  env: Env,
+  userToken?: string,
+  path?: string
+): Promise<CommitInfo[]> {
+  const params = new URLSearchParams({
+    sha: ref,
+    per_page: "10",
+  });
+  
+  if (path) {
+    params.set("path", path);
+  }
+
+  const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?${params.toString()}`;
+  const res = await fetch(url, { headers: buildHeaders(env, userToken) });
+
+  if (res.status === 404) {
+    throw new RepoNotFoundError(`Repository ${owner}/${repo} not found or is private.`);
+  }
+  if (res.status === 403) {
+    const rateLimitRemaining = res.headers.get("X-RateLimit-Remaining");
+    const rateLimitReset = res.headers.get("X-RateLimit-Reset");
+    
+    if (rateLimitRemaining !== null && rateLimitRemaining === "0") {
+      const resetTime = rateLimitReset ? new Date(parseInt(rateLimitReset) * 1000).toISOString() : "soon";
+      throw new GitHubApiError(403, `GitHub API rate limit exceeded. Resets at ${resetTime}.}`);
+    }
+    throw new GitHubApiError(403, "GitHub API access denied (403)");
+  }
+  if (!res.ok) {
+    throw new GitHubApiError(res.status, `GitHub API returned ${res.status}`);
+  }
+
+  const commits = await res.json() as Array<{
+    sha: string;
+    commit: {
+      author: {
+        name: string;
+        date: string;
+      };
+      message: string;
+    } | files?: Array<unknown>;
+  }>;
+
+  return commits.map((commit) => ({
+    sha: commit.sha.substring(0, 7),
+    author: commit.commit.author.name,
+    date: new Date(commit.commit.author.date).toISOString().split("T")[0],
+    message: commit.commit.message.split("\n")[0],
+    filesChanged: commit.files?.length ?? 0,
+  }));
+}

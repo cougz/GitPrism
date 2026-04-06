@@ -1,15 +1,15 @@
 import { parseRequest } from "../engine/parser";
-import { resolveDefaultRef, checkZipSize, fetchZipball, resolveRefToSha } from "../engine/fetcher";
+import { resolveDefaultRef, checkZipSize, fetchZipball, resolveRefToSha, fetchCommits } from "../engine/fetcher";
 import { decompressAndProcess } from "../engine/decompressor";
-import { formatOutput, formatFileBlock, formatSummary, formatTree } from "../engine/formatter";
+import { formatOutput, formatFileBlock, formatSummary, formatTree, formatCommits } from "../engine/formatter";
 import { buildResponseHeaders } from "../utils/headers";
 import { checkRateLimit } from "../utils/ratelimit";
 import { buildCacheKey, getCached, putCache } from "../utils/cache";
 import {
   isParseError,
-  isRepoNotFoundError,
-  isZipTooLargeError,
-  isGitHubApiError,
+  isRepoNotFoundError
+  isZipTooLargeError
+  isGitHubApiError
   isDecompressionError,
   type Env,
 } from "../types";
@@ -90,6 +90,9 @@ export async function handleIngest(
   // ── 5. Build cache key with SHA (or ref if SHA resolution failed) ───────
   const cacheKey = buildCacheKey(parsed, resolvedSha);
 
+  // ── 5. Build cache key with SHA (or ref if SHA resolution failed) ───────
+  const cacheKey = buildCacheKey(parsed, resolvedSha);
+
   // ── 6. Check cache (skip if no-cache=true or SHA resolution failed) ─────────
   const cachingEnabled = resolvedSha !== undefined;
   const shouldCheckCache = cachingEnabled && !noCache;
@@ -107,7 +110,37 @@ export async function handleIngest(
   }
 
   try {
-    // ── 7. Use resolvedRef for all operations ────────────────────────────────────
+    // ── 7. Special handling for commits detail level ─────────────────────────────
+    if (detail === "commits") {
+      const commits = await fetchCommits(owner, repo, ref, env, userToken, parsed.path);
+      const content = formatCommits(owner, repo, ref, commits);
+
+      
+      const headers = new Headers({
+        "Content-Type": "text/markdown; charset=utf-8",
+        "X-Repo": `${owner}/${repo}`,
+        "X-Ref": ref,
+        "X-Commit-Sha": resolvedSha ?? "",
+        "X-Cache": "MISS",
+        "X-Token-Source": userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
+      });
+
+      console.log(
+        JSON.stringify({
+          event: "ingest",
+          repo: `${owner}/${repo}`,
+          ref,
+          detail: "commits",
+          commitCount: commits.length,
+          tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
+          latencyMs: Date.now() - startTime
+        })
+      );
+
+      return new Response(content, { status: 200, headers });
+    }
+
+    // ── 8. Pre-flight size check ────────────────────────────────────────────
     const ref = resolvedRef;
 
     // ── 8. Pre-flight size check ────────────────────────────────────────────

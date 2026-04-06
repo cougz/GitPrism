@@ -1,8 +1,4 @@
-import type { CommitInfo } from "./fetcher";
-
 import type { DetailLevel, FileEntry, IngestResult } from "../types";
-
-import type { CommitInfo } from "./fetcher";
 
 // ── Language detection ────────────────────────────────────────────────────────
 
@@ -231,35 +227,6 @@ export function formatFull(result: IngestResult): string {
   return content;
 }
 
-export function formatCommits(
-  owner: string,
-  repo: string,
-  ref: string,
-  commits: CommitInfo[]
-): string {
-  const lines = [
-    `# ${owner}/${repo}`,
-    "",
-    `**Ref:** \`${ref}\`  `,
-    `**Commits:** ${commits.length}`,
-    "",
-    "## Recent Commits",
-    "",
-    "| SHA | Author | Date | Message | Files |",
-    "|-----|--------|------|---------|-------|",
-  ];
-
-  for (const commit of commits) {
-    const message = commit.message.length > 60 
-      ? commit.message.substring(0, 57) + "..."
-      : commit.message;
-    lines.push(`| \`${commit.sha}\` | ${commit.author} | ${commit.date} | ${message} | ${commit.filesChanged} |`);
-  }
-
-  lines.push("");
-  return lines.join("\n");
-}
-
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 
 export function formatOutput(result: IngestResult, detail: DetailLevel): string {
@@ -272,7 +239,5 @@ export function formatOutput(result: IngestResult, detail: DetailLevel): string 
       return formatFileList(result);
     case "full":
       return formatFull(result);
-    case "commits":
-      return formatCommits(result.owner, result.repo, result.ref, result.files);
   }
 }
