@@ -16,7 +16,8 @@ import type { DetailLevel, Env } from "../types";
 export async function ingestFromUrl(
   githubUrl: string,
   detail: DetailLevel,
-  env: Env
+  env: Env,
+  userToken?: string
 ): Promise<string> {
   // Normalize: if given `owner/repo` shorthand, prefix with the URL-appended form
   let urlToParse: string;
@@ -34,12 +35,12 @@ export async function ingestFromUrl(
 
   let ref = parsed.ref;
   if (!ref) {
-    ref = await resolveDefaultRef(parsed.owner, parsed.repo, env);
+    ref = await resolveDefaultRef(parsed.owner, parsed.repo, env, userToken);
   }
 
-  await checkZipSize(parsed.owner, parsed.repo, ref, env);
+  await checkZipSize(parsed.owner, parsed.repo, ref, env, userToken);
 
-  const { data: zipData } = await fetchZipball(parsed.owner, parsed.repo, ref, env);
+  const { data: zipData } = await fetchZipball(parsed.owner, parsed.repo, ref, env, userToken);
 
   const maxOutputBytes = parseInt(env.MAX_OUTPUT_BYTES ?? "10485760", 10);
   const maxFileCount = parseInt(env.MAX_FILE_COUNT ?? "5000", 10);

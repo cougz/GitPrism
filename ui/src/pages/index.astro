@@ -105,6 +105,43 @@ import Layout from '../layouts/Layout.astro';
       opacity: 0.6;
       cursor: not-allowed;
     }
+    .search-btn-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .token-indicator {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: #3fb950;
+      white-space: nowrap;
+    }
+    .token-indicator.visible { display: flex; }
+    .token-indicator .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #3fb950;
+    }
+    .settings-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 10px;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .settings-btn:hover {
+      border-color: var(--cf-orange);
+      color: var(--cf-orange);
+    }
     .spinner {
       display: none;
       width: 14px; height: 14px;
@@ -208,6 +245,7 @@ import Layout from '../layouts/Layout.astro';
     .badge {
       display: inline-flex;
       align-items: center;
+      gap: 4px;
       padding: 2px 8px;
       border-radius: 10px;
       font-size: 11px;
@@ -216,6 +254,9 @@ import Layout from '../layouts/Layout.astro';
     .badge-hit     { background: rgba(63, 185, 80, 0.15);  color: #3fb950; }
     .badge-miss    { background: rgba(210, 153, 34, 0.15); color: #d29922; }
     .badge-trunc   { background: rgba(248, 81, 73, 0.12);  color: #f85149; }
+    .badge-user    { background: rgba(163, 113, 247, 0.15); color: #a371f7; }
+    .badge-server  { background: rgba(110, 118, 129, 0.15); color: #8b949e; }
+    .badge-dot     { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     .result-actions {
       display: flex;
       gap: 8px;
@@ -318,6 +359,60 @@ import Layout from '../layouts/Layout.astro';
     }
     .mode-hint strong { color: var(--cf-orange); display: block; margin-bottom: 2px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
 
+    /* ── Settings panel ── */
+    .settings-panel {
+      display: none;
+      width: 100%;
+      max-width: 720px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .settings-panel.visible { display: block; }
+    .settings-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+    }
+    .settings-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+    .settings-desc a { color: var(--cf-orange); }
+    .token-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .token-input {
+      flex: 1;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--text-primary);
+      outline: none;
+      transition: border-color var(--transition-fast);
+    }
+    .token-input:focus { border-color: var(--cf-orange); }
+    .token-clear-btn {
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .token-clear-btn:hover { border-color: #f85149; color: #f85149; }
+
     /* ── Interactive label ── */
     .interactive-label {
       text-align: center;
@@ -394,12 +489,38 @@ import Layout from '../layouts/Layout.astro';
             spellcheck="false"
             required
           />
-          <button type="submit" class="search-btn" id="submit-btn">
-            <span class="spinner" id="spinner"></span>
-            <span id="submit-label">Ingest</span>
-          </button>
+          <div class="search-btn-wrapper">
+            <span class="token-indicator" id="token-indicator">
+              <span class="dot"></span>
+              Using your token
+            </span>
+            <button type="submit" class="search-btn" id="submit-btn">
+              <span class="spinner" id="spinner"></span>
+              <span id="submit-label">Ingest</span>
+            </button>
+            <button type="button" class="settings-btn" id="settings-toggle" title="Settings">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
+            </button>
+          </div>
         </div>
       </form>
+    </section>
+
+    <!-- Settings panel -->
+    <section class="settings-panel" id="settings-panel">
+      <div class="settings-title">GitHub personal access token (optional)</div>
+      <div class="settings-desc">
+        Stored only in your browser. Never sent to any server other than GitHub via this Worker. Bypasses the 30 req/min rate limit and uses your personal GitHub quota (5,000 req/hr) instead of the shared server quota.
+        <br><br>
+        <a href="https://github.com/settings/tokens?type=beta" target="_blank" rel="noopener">Create a fine-grained token</a> — grant <strong>Contents: Read-only</strong> on public repositories only.
+      </div>
+      <div class="token-input-row">
+        <input type="password" class="token-input" id="github-token" placeholder="ghp_xxxx or github_pat_xxxx" autocomplete="off" spellcheck="false" />
+        <button type="button" class="token-clear-btn" id="token-clear-btn">Clear</button>
+      </div>
     </section>
 
     <!-- Detail level options -->
@@ -478,6 +599,61 @@ import Layout from '../layouts/Layout.astro';
   </main>
 
   <script>
+    // ── Token management ──────────────────────────────────────────────────────
+    const TOKEN_KEY = 'gitprism_github_token';
+    const tokenInput = document.getElementById('github-token') as HTMLInputElement;
+    const tokenIndicator = document.getElementById('token-indicator') as HTMLElement;
+    const settingsPanel = document.getElementById('settings-panel') as HTMLElement;
+    const settingsToggle = document.getElementById('settings-toggle') as HTMLButtonElement;
+    const tokenClearBtn = document.getElementById('token-clear-btn') as HTMLButtonElement;
+
+    function getStoredToken(): string | null {
+      return localStorage.getItem(TOKEN_KEY);
+    }
+
+    function setStoredToken(token: string | null): void {
+      if (token) {
+        localStorage.setItem(TOKEN_KEY, token);
+      } else {
+        localStorage.removeItem(TOKEN_KEY);
+      }
+      updateTokenIndicator();
+    }
+
+    function updateTokenIndicator(): void {
+      const token = getStoredToken();
+      if (token) {
+        tokenIndicator.classList.add('visible');
+        tokenInput.value = token;
+      } else {
+        tokenIndicator.classList.remove('visible');
+        tokenInput.value = '';
+      }
+    }
+
+    // Initialize token indicator on page load
+    updateTokenIndicator();
+
+    // Settings panel toggle
+    settingsToggle.addEventListener('click', () => {
+      settingsPanel.classList.toggle('visible');
+    });
+
+    // Token input with debounce
+    let tokenDebounce: ReturnType<typeof setTimeout>;
+    tokenInput.addEventListener('input', () => {
+      clearTimeout(tokenDebounce);
+      tokenDebounce = setTimeout(() => {
+        setStoredToken(tokenInput.value || null);
+      }, 300);
+    });
+
+    // Clear token button
+    tokenClearBtn.addEventListener('click', () => {
+      tokenInput.value = '';
+      setStoredToken(null);
+    });
+
     // ── Detail pills ──────────────────────────────────────────────────────────
     document.querySelectorAll('.pill').forEach(pill => {
       pill.addEventListener('click', () => {
@@ -553,8 +729,12 @@ import Layout from '../layouts/Layout.astro';
       setLoading(true);
       resultSec.style.display  = 'none';
 
+      const storedToken = getStoredToken();
+      const fetchHeaders: Record<string, string> = {};
+      if (storedToken) fetchHeaders['X-GitHub-Token'] = storedToken;
+
       try {
-        const res = await fetch(apiUrl);
+        const res = await fetch(apiUrl, { headers: fetchHeaders });
 
         if (!res.ok) {
           let msg = `Request failed (HTTP ${res.status})`;
@@ -591,6 +771,7 @@ import Layout from '../layouts/Layout.astro';
         const totalSize = res.headers.get('X-Total-Size');
         const truncated = res.headers.get('X-Truncated');
         const cacheStatus = res.headers.get('X-Cache');
+        const tokenSource = res.headers.get('X-Token-Source');
 
         let metaHtml = '';
         if (fileCount) metaHtml += `<span>${fileCount} files</span>`;
@@ -604,6 +785,11 @@ import Layout from '../layouts/Layout.astro';
         if (cacheStatus) {
           const cls = cacheStatus === 'HIT' ? 'badge-hit' : 'badge-miss';
           metaHtml += `<span class="badge ${cls}">${cacheStatus}</span>`;
+        }
+        if (tokenSource === 'user') {
+          metaHtml += `<span class="badge badge-user"><span class="badge-dot"></span>Your token</span>`;
+        } else if (tokenSource === 'server') {
+          metaHtml += `<span class="badge badge-server">Shared token</span>`;
         }
         if (truncated === 'true') {
           metaHtml += `<span class="badge badge-trunc">TRUNCATED</span>`;

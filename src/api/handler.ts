@@ -50,41 +50,47 @@ export async function handleIngest(
     return jsonError(400, "Invalid request.");
   }
 
+  // ── 2. Extract user-provided GitHub token ─────────────────────────────────
+  const userToken = request.headers.get("X-GitHub-Token") ?? undefined;
+  parsed.userToken = userToken;
+
   const { owner, repo, detail, noCache, ref: originalRef } = parsed;
 
-  // ── 2. Rate limit check ───────────────────────────────────────────────────
-  const clientIP = getClientIP(request);
-  const rateLimitResult = await checkRateLimit(env, clientIP);
-  if (!rateLimitResult.allowed) {
-    const retryAfter = rateLimitResult.retryAfter ?? 60;
-    return new Response(
-      JSON.stringify({ error: "Rate limit exceeded", retryAfter }),
-      {
-        status: 429,
-        headers: {
-          "Content-Type": "application/json",
-          "Retry-After": String(retryAfter),
-        },
-      }
-    );
+  // ── 3. Rate limit — skip when user supplies their own token ───────────────
+  if (!userToken) {
+    const clientIP = getClientIP(request);
+    const rateLimitResult = await checkRateLimit(env, clientIP);
+    if (!rateLimitResult.allowed) {
+      const retryAfter = rateLimitResult.retryAfter ?? 60;
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded", retryAfter }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            "Retry-After": String(retryAfter),
+          },
+        }
+      );
+    }
   }
 
-  // ── 3. Resolve ref to commit SHA ────────────────────────────────────────────
+  // ── 4. Resolve ref to commit SHA ────────────────────────────────────────────
   let resolvedRef: string | undefined;
   let resolvedSha: string | undefined;
 
   if (!originalRef) {
-    resolvedRef = await resolveDefaultRef(owner, repo, env);
-    resolvedSha = await resolveRefToSha(owner, repo, resolvedRef, env);
+    resolvedRef = await resolveDefaultRef(owner, repo, env, userToken);
+    resolvedSha = await resolveRefToSha(owner, repo, resolvedRef, env, userToken);
   } else {
     resolvedRef = originalRef;
-    resolvedSha = await resolveRefToSha(owner, repo, originalRef, env);
+    resolvedSha = await resolveRefToSha(owner, repo, originalRef, env, userToken);
   }
 
-  // ── 4. Build cache key with SHA (or ref if SHA resolution failed) ───────
+  // ── 5. Build cache key with SHA (or ref if SHA resolution failed) ───────
   const cacheKey = buildCacheKey(parsed, resolvedSha);
 
-  // ── 5. Check cache (skip if no-cache=true or SHA resolution failed) ─────────
+  // ── 6. Check cache (skip if no-cache=true or SHA resolution failed) ─────────
   const cachingEnabled = resolvedSha !== undefined;
   const shouldCheckCache = cachingEnabled && !noCache;
 
@@ -101,21 +107,22 @@ export async function handleIngest(
   }
 
   try {
-    // ── 6. Use resolvedRef for all operations ────────────────────────────────────
+    // ── 7. Use resolvedRef for all operations ────────────────────────────────────
     const ref = resolvedRef;
 
-    // ── 7. Pre-flight size check ────────────────────────────────────────────
-    await checkZipSize(owner, repo, ref, env);
+    // ── 8. Pre-flight size check ────────────────────────────────────────────
+    await checkZipSize(owner, repo, ref, env, userToken);
 
-    // ── 8. Fetch zipball ────────────────────────────────────────────────────
+    // ── 9. Fetch zipball ────────────────────────────────────────────────────
     const { data: zipData, rateLimitRemaining, rateLimitReset } = await fetchZipball(
       owner,
       repo,
       ref,
-      env
+      env,
+      userToken
     );
 
-    // ── 9. Decompress and process ───────────────────────────────────────────
+    // ── 10. Decompress and process ───────────────────────────────────────────
     const maxOutputBytes = parseInt(env.MAX_OUTPUT_BYTES ?? "10485760", 10);
     const maxFileCount = parseInt(env.MAX_FILE_COUNT ?? "5000", 10);
 
@@ -132,7 +139,7 @@ export async function handleIngest(
     result.repoName = `${owner}/${repo}`;
     result.ref = originalRef ?? ref;
 
-    // ── 10. Build response headers ───────────────────────────────────────────
+    // ── 11. Build response headers ───────────────────────────────────────────
     const headers = buildResponseHeaders({
       result,
       rateLimitRemaining,
@@ -141,7 +148,12 @@ export async function handleIngest(
       commitSha: resolvedSha,
     });
 
-    // ── 11. Emit structured log ──────────────────────────────────────────────
+    headers.set(
+      "X-Token-Source",
+      userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none"
+    );
+
+    // ── 12. Emit structured log ──────────────────────────────────────────────
     console.log(
       JSON.stringify({
         event: "ingest",
@@ -156,10 +168,11 @@ export async function handleIngest(
         truncated: result.truncated,
         rateLimitRemaining,
         latencyMs: Date.now() - startTime,
+        tokenSource: userToken ? "user" : env.GITHUB_TOKEN ? "server" : "none",
       })
     );
 
-    // ── 12. Stream response for detail=full, otherwise return all at once ───
+    // ── 13. Stream response for detail=full, otherwise return all at once ───
     if (detail === "full") {
       const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
       const writer = writable.getWriter();

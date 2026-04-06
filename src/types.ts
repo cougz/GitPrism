@@ -17,6 +17,7 @@ export interface ParsedRequest {
   path?: string;
   detail: DetailLevel;
   noCache: boolean;
+  userToken?: string;
 }
 
 export interface FileEntry {

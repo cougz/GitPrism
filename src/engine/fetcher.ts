@@ -8,13 +8,14 @@ import {
 const GITHUB_API_BASE = "https://api.github.com";
 const USER_AGENT = "GitPrism/1.0";
 
-function buildHeaders(env: Env): Record<string, string> {
+function buildHeaders(env: Env, userToken?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "User-Agent": USER_AGENT,
     "Accept": "application/vnd.github+json",
   };
-  if (env.GITHUB_TOKEN) {
-    headers["Authorization"] = `Bearer ${env.GITHUB_TOKEN}`;
+  const token = userToken || env.GITHUB_TOKEN;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
 }
@@ -30,10 +31,11 @@ function maxZipBytes(env: Env): number {
 export async function resolveDefaultRef(
   owner: string,
   repo: string,
-  env: Env
+  env: Env,
+  userToken?: string
 ): Promise<string> {
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}`;
-  const res = await fetch(url, { headers: buildHeaders(env) });
+  const res = await fetch(url, { headers: buildHeaders(env, userToken) });
 
   if (res.status === 404) {
     throw new RepoNotFoundError(`Repository ${owner}/${repo} not found or is private.`);
@@ -71,13 +73,14 @@ export async function checkZipSize(
   owner: string,
   repo: string,
   ref: string,
-  env: Env
+  env: Env,
+  userToken?: string
 ): Promise<void> {
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/zipball/${ref}`;
   const res = await fetch(url, {
     method: "HEAD",
     redirect: "follow",
-    headers: buildHeaders(env),
+    headers: buildHeaders(env, userToken),
   });
 
   if (res.status === 404) {
@@ -118,11 +121,12 @@ export async function resolveRefToSha(
   owner: string,
   repo: string,
   ref: string,
-  env: Env
+  env: Env,
+  userToken?: string
 ): Promise<string | undefined> {
   try {
     const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits/${ref}`;
-    const res = await fetch(url, { headers: buildHeaders(env) });
+    const res = await fetch(url, { headers: buildHeaders(env, userToken) });
 
     if (!res.ok) {
       return undefined;
@@ -148,12 +152,13 @@ export async function fetchZipball(
   owner: string,
   repo: string,
   ref: string,
-  env: Env
+  env: Env,
+  userToken?: string
 ): Promise<FetchZipballResult> {
   const url = `${GITHUB_API_BASE}/repos/${owner}/${repo}/zipball/${ref}`;
   const res = await fetch(url, {
     redirect: "follow",
-    headers: buildHeaders(env),
+    headers: buildHeaders(env, userToken),
   });
 
   if (res.status === 404) {

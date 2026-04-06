@@ -42,11 +42,17 @@ function createServer(env: Env): McpServer {
           .enum(["summary", "structure", "file-list", "full"])
           .default("full")
           .describe("Level of detail in the output. Defaults to 'full'."),
+        github_token: z
+          .string()
+          .optional()
+          .describe(
+            "Optional GitHub personal access token. Bypasses shared rate limits and uses your personal GitHub quota."
+          ),
       },
     },
-    async ({ url, detail }) => {
+    async ({ url, detail, github_token }) => {
       try {
-        const markdown = await ingestFromUrl(url, detail, env);
+        const markdown = await ingestFromUrl(url, detail, env, github_token);
         return { content: [{ type: "text" as const, text: markdown }] };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

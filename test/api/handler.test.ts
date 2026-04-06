@@ -209,4 +209,112 @@ describe("handleIngest – no-cache param", () => {
   });
 });
 
+describe("handleIngest – user token", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("bypasses rate limiter when X-GitHub-Token header is present", async () => {
+    const env = makeEnv({
+      RATE_LIMITER: { limit: vi.fn().mockResolvedValue({ success: false }) } as unknown as RateLimit,
+    });
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ sha: "abc123" }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
+      )
+      .mockResolvedValueOnce(
+        new Response(zipData.buffer as ArrayBuffer, {
+          status: 200,
+          headers: {
+            "X-RateLimit-Remaining": "4999",
+            "X-RateLimit-Reset": "1700000000",
+          },
+        })
+      );
+
+    const req = new Request("https://gitprism.dev/ingest?repo=owner/repo&ref=main", {
+      headers: { "X-GitHub-Token": "user-provided-token" },
+    });
+    const res = await handleIngest(req, env, makeCtx());
+    expect(res.status).toBe(200);
+    expect(env.RATE_LIMITER.limit).not.toHaveBeenCalled();
+  });
+
+  it("sets X-Token-Source: user when X-GitHub-Token header is present", async () => {
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ sha: "abc123" }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
+      )
+      .mockResolvedValueOnce(
+        new Response(zipData.buffer as ArrayBuffer, {
+          status: 200,
+          headers: {
+            "X-RateLimit-Remaining": "4999",
+            "X-RateLimit-Reset": "1700000000",
+          },
+        })
+      );
+
+    const req = new Request("https://gitprism.dev/ingest?repo=owner/repo&ref=main", {
+      headers: { "X-GitHub-Token": "user-token" },
+    });
+    const res = await handleIngest(req, makeEnv(), makeCtx());
+    expect(res.headers.get("X-Token-Source")).toBe("user");
+  });
+
+  it("sets X-Token-Source: server when env.GITHUB_TOKEN is set but no user token", async () => {
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ sha: "abc123" }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
+      )
+      .mockResolvedValueOnce(
+        new Response(zipData.buffer as ArrayBuffer, {
+          status: 200,
+          headers: {
+            "X-RateLimit-Remaining": "4999",
+            "X-RateLimit-Reset": "1700000000",
+          },
+        })
+      );
+
+    const req = new Request("https://gitprism.dev/ingest?repo=owner/repo&ref=main");
+    const res = await handleIngest(req, makeEnv({ GITHUB_TOKEN: "server-token" }), makeCtx());
+    expect(res.headers.get("X-Token-Source")).toBe("server");
+  });
+
+  it("sets X-Token-Source: none when no token is available", async () => {
+    (fetch as ReturnType<typeof vi.fn>)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ sha: "abc123" }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(null, { status: 200, headers: { "Content-Length": "1000" } })
+      )
+      .mockResolvedValueOnce(
+        new Response(zipData.buffer as ArrayBuffer, {
+          status: 200,
+          headers: {
+            "X-RateLimit-Remaining": "4999",
+            "X-RateLimit-Reset": "1700000000",
+          },
+        })
+      );
+
+    const req = new Request("https://gitprism.dev/ingest?repo=owner/repo&ref=main");
+    const res = await handleIngest(req, makeEnv(), makeCtx());
+    expect(res.headers.get("X-Token-Source")).toBe("none");
+  });
+});
+
+
 

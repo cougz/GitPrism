@@ -213,3 +213,76 @@ describe("resolveRefToSha", () => {
     expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer mytoken");
   });
 });
+
+describe("userToken parameter", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("userToken takes precedence over env.GITHUB_TOKEN in resolveDefaultRef", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ default_branch: "main" }), { status: 200 })
+    );
+    await resolveDefaultRef("owner", "repo", makeEnv("env-token"), "user-token");
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer user-token");
+  });
+
+  it("userToken is used when env.GITHUB_TOKEN is not set in resolveDefaultRef", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ default_branch: "main" }), { status: 200 })
+    );
+    await resolveDefaultRef("owner", "repo", makeEnv(), "user-token");
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer user-token");
+  });
+
+  it("no Authorization header when neither userToken nor env.GITHUB_TOKEN is set", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ default_branch: "main" }), { status: 200 })
+    );
+    await resolveDefaultRef("owner", "repo", makeEnv());
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBeUndefined();
+  });
+
+  it("userToken takes precedence in fetchZipball", async () => {
+    const data = new Uint8Array([1, 2, 3, 4]);
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(data.buffer, {
+        status: 200,
+        headers: {
+          "X-RateLimit-Remaining": "4999",
+          "X-RateLimit-Reset": "1700000000",
+        },
+      })
+    );
+    await fetchZipball("owner", "repo", "main", makeEnv("env-token"), "user-token");
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer user-token");
+  });
+
+  it("userToken takes precedence in checkZipSize", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(null, {
+        status: 200,
+        headers: { "Content-Length": "1000" },
+      })
+    );
+    await checkZipSize("owner", "repo", "main", makeEnv("env-token"), "user-token");
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer user-token");
+  });
+
+  it("userToken takes precedence in resolveRefToSha", async () => {
+    (fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
+      new Response(JSON.stringify({ sha: "abc123" }), { status: 200 })
+    );
+    await resolveRefToSha("owner", "repo", "main", makeEnv("env-token"), "user-token");
+    const [, options] = (fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit];
+    expect((options.headers as Record<string, string>)["Authorization"]).toBe("Bearer user-token");
+  });
+});
