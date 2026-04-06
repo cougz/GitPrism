@@ -721,12 +721,8 @@ import Layout from '../layouts/Layout.astro';
     document.querySelectorAll('.pill').forEach(pill => {
       pill.addEventListener('click', (e) => {
         const checkbox = pill.querySelector('input[type="checkbox"]') as HTMLInputElement;
-        if (checkbox && e.target !== checkbox) {
-          // Toggle checkbox if pill was clicked (not the checkbox itself)
-          checkbox.checked = !checkbox.checked;
-        }
-        // Update active class based on checkbox state
         if (checkbox) {
+          checkbox.checked = !checkbox.checked;
           pill.classList.toggle('active', checkbox.checked);
         }
       });
