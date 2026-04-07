@@ -72,7 +72,7 @@ import Layout from '../layouts/Layout.astro';
       font-family: var(--font-mono);
       font-size: 14px;
       line-height: 1.5;
-      padding: 8px 110px 8px 0;
+      padding: 8px 0;
       min-width: 0;
     }
     .search-input::placeholder {
@@ -120,15 +120,6 @@ import Layout from '../layouts/Layout.astro';
       border-top: 1px solid var(--border-color);
     }
     .token-indicator.visible { display: flex; }
-    .token-indicator .dot {
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 8px;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #3fb950;
-    }
     .settings-btn {
       flex-shrink: 0;
       display: flex;
@@ -564,10 +555,7 @@ import Layout from '../layouts/Layout.astro';
         <input type="password" class="token-input" id="github-token" placeholder="ghp_xxxx or github_pat_xxxx" autocomplete="off" spellcheck="false" />
         <button type="button" class="token-clear-btn" id="token-clear-btn">Clear</button>
       </div>
-      <div class="token-indicator" id="token-indicator">
-        <span class="dot"></span>
-        <span>Using your token</span>
-      </div>
+      <div class="token-indicator" id="token-indicator">Using your token</div>
     </section>
 
     <!-- Detail level options -->
