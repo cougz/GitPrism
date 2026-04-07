@@ -328,7 +328,7 @@ export async function handleIngest(
     console.error(JSON.stringify(errorLog));
 
     if (isRepoNotFoundError(err)) {
-      return jsonError(404, "Repository not found or is private");
+      return jsonError(404, (err as Error).message);
     }
     if (isZipTooLargeError(err)) {
       return jsonError(413, (err as Error).message);
